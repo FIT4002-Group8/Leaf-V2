@@ -12,16 +12,6 @@ services:
     ports:
       - "5432:5432"
     restart: unless-stopped
-  leaf-etl:
-    image: "leaf-etl"
-    container_name: "leaf-etl"
-    environment:
-      ENV: "dev"
-    ports:
-      - "5000:5000"
-    restart: unless-stopped
-    depends_on:
-      - postgres
 
 volumes:
   leafdb:
