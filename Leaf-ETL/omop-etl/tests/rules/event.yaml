@@ -1,0 +1,69 @@
+# =============================
+# mapping.person
+# =============================
+# id  | staff_id | patient_id
+# -----------------------------
+# 0   |    101   |
+# 1   |    456   |
+# 2   |    457   |
+# 3   |          |    100
+# 4   |          |    456
+# 5   |          |    749
+# 6   |          |    999
+
+# create table omop.person_mapping (id INTEGER, staff_id INTEGER, patient_id INTEGER, primary key (id));
+# insert into omop.person_mapping (id, staff_id, patient_id) values (0, 101, None);
+# insert into omop.person_mapping (id, staff_id, patient_id) values (1, 456, None);
+# insert into omop.person_mapping (id, staff_id, patient_id) values (2, 457, None);
+# insert into omop.person_mapping (id, staff_id, patient_id) values (3, None, 100);
+# insert into omop.person_mapping (id, staff_id, patient_id) values (4, None, 456);
+# insert into omop.person_mapping (id, staff_id, patient_id) values (5, None, 749);
+# insert into omop.person_mapping (id, staff_id, patient_id) values (6, None, 999);
+
+# =============================
+# event -- BEFORE MAPPING FKS
+# =============================
+# id  | staff_id | patient_id
+# -----------------------------
+# 1   |    456   |    456
+# 2   |    457   |    456
+# 3   |    101   |    100
+# 4   |     -    |    999
+
+# =============================
+# event -- AFTER MAPPING FKS
+# =============================
+# id  | staff_id | patient_id
+# -----------------------------
+# 1   |    1   |    4
+# 2   |    2   |    4
+# 3   |    0   |    3
+# 4   |    -   |    6
+
+name: events
+
+primary_key:
+  name: id
+  sources:
+    event_pk:
+      table: event
+      columns:
+        id: integer
+
+columns:
+  - name: staff_id
+    tables: [event]
+    primary_key: event_pk
+    references:
+      table: person
+      column: staff_id
+    expression: event.staff_id
+
+  - name: patient_id
+    tables: [event]
+    primary_key: event_pk
+    references:
+      person:
+        table: patient
+        column: id
+    expression: event.patient_id
