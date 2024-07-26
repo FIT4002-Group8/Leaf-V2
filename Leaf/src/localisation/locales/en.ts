@@ -347,6 +347,7 @@ export default {
     "feedback.failDeleteNurseAccount": "Nurse has patient(s) assigned",
     "feedback.successExportPatient": "Patient exported",
     "feedback.updatedPassword": "Password updated",
-    "feedback.successExportReport": "Report Exported",
-    "feedback.successDownloadReport": "Report Downloaded",
+    "feedback.successExportReport": "Report exported",
+    "feedback.successDownloadReport": "Report downloaded",
+    "feedback.failDownloadReport": "Error downloading report",
 };
