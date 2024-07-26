@@ -1,11 +1,11 @@
-import { NavigationProp, ParamListBase } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
-import { strings } from "../../localisation/Strings";
+import {NavigationProp, ParamListBase} from "@react-navigation/native";
+import React, {useEffect, useLayoutEffect, useState} from "react";
+import {strings} from "../../localisation/Strings";
 import Session from "../../model/session/Session";
 import StateManager from "../../state/publishers/StateManager";
 import DefaultScreenContainer from "./containers/DefaultScreenContainer";
 import LeafButton from "../base/LeafButton/LeafButton";
-import { LeafButtonType } from "../base/LeafButton/LeafButtonType";
+import {LeafButtonType} from "../base/LeafButton/LeafButtonType";
 import LeafTypography from "../styling/LeafTypography";
 import LeafColors from "../styling/LeafColors";
 import LeafDimensions from "../styling/LeafDimensions";
@@ -20,9 +20,9 @@ import Hospital from "../../model/hospital/Hospital";
 import Ward from "../../model/hospital/Ward";
 import MedicalUnit from "../../model/hospital/MedicalUnit";
 import Worker from "../../model/employee/Worker";
-import { HospitalArray } from "../../preset_data/Hospitals";
-import { PatientSex } from "../../model/patient/PatientSex";
-import { TriageCode } from "../../model/triage/TriageCode";
+import {HospitalArray} from "../../preset_data/Hospitals";
+import {PatientSex} from "../../model/patient/PatientSex";
+import {TriageCode} from "../../model/triage/TriageCode";
 import LeafSelectionInputModified from "../base/LeafListSelection/LeafSelectionInputModified";
 import TriageCodePickerModified from "../custom/TriageCodePickerModified";
 import SexPicker from "../custom/SexPickerModified";
@@ -31,7 +31,7 @@ interface Props {
     navigation?: NavigationProp<ParamListBase>;
 }
 
-const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
+const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const [componentWidth, setComponentWidth] = useState(StateManager.contentWidth.read());
     const [selectedHospital, setSelectedHospital] = useState<LeafSelectionItem<Hospital> | undefined>();
     const [selectedWard, setSelectedWard] = useState<LeafSelectionItem<Ward> | undefined>();
@@ -53,9 +53,10 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
             setFilteredWorkers(Session.inst.getAllWorkers());
         });
 
+        setComponentWidth(window.innerWidth-264)
+
         // Fetch all workers when the component is mounted
         Session.inst.fetchAllWorkers();
-
         // Cleanup: Unsubscribe from workersFetched event when the component is unmounted
         return () => {
             unsubscribeWorkers();
@@ -75,6 +76,7 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
     const columnCount = determineColumnCount(componentWidth);
     const buttonSpacing = LeafDimensions.screenSpacing;
     const buttonWidth = (componentWidth - ((columnCount - 1) * buttonSpacing / 2)) / columnCount;
+    console.log(componentWidth);
 
     // Function to handle custom tile selection
     const handleCustomTileSelection = () => {
@@ -134,7 +136,7 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
         <DefaultScreenContainer>
-            <VStack spacing={LeafDimensions.screenSpacing} style={{ flex: 1 }}>
+            <VStack spacing={LeafDimensions.screenSpacing} style={{flex: 1}}>
                 <HStack
                     spacing={buttonSpacing}
                     style={{
@@ -181,14 +183,14 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
                 </HStack>
 
                 {isCustomTileSelected && (
-                    <VStack spacing={LeafDimensions.textInputSpacing} style={{ width: "100%" }}>
+                    <VStack spacing={LeafDimensions.textInputSpacing} style={{width: "100%"}}>
                         <FormHeader
                             title={strings("triageForm.title.reportFilter")}
-                            style={{ paddingVertical: 24 }}
+                            style={{paddingVertical: 24}}
                         />
 
                         {/* Custom selection inputs */}
-                        <VStack spacing={LeafDimensions.textInputSpacing} style={{ width: "100%" }}>
+                        <VStack spacing={LeafDimensions.textInputSpacing} style={{width: "100%"}}>
                             <LeafSelectionInputModified
                                 navigation={navigation}
                                 items={HospitalArray.map(hospital => new LeafSelectionItem(hospital.name, hospital.code, hospital))}
@@ -232,13 +234,13 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
                             />
 
                             <SexPicker
-                                style={{ paddingBottom: 8 }}
+                                style={{paddingBottom: 8}}
                                 onSelection={handleSexSelection}
                                 initialValue={selectedSexes}
                             />
 
                             <TriageCodePickerModified
-                                style={{ paddingBottom: 8 }}
+                                style={{paddingBottom: 8}}
                                 onSelection={codes => setTriageCode(codes.length > 0 ? codes[0] : undefined)}
                                 initialValue={triageCode ? [triageCode] : undefined}
                             />
@@ -247,7 +249,7 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
                 )}
 
                 {/* Add the export button at the bottom */}
-                <VGap size={12} />
+                <VGap size={12}/>
                 <LeafButton
                     label="Export"
                     icon="file-export"

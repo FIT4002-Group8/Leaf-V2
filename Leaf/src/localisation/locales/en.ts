@@ -155,8 +155,10 @@ export default {
     "label.triageCode2Param": "CODE {0}  •  {1}",
     "label.removeAccountWarning": "Are you sure you want to remove this account? This action is irreversible.",
     "label.createdAt1Param": "Created {0}",
-    "label.noReportSelected": "No Report Selected",
-    "label.reportSelected": "Report Selected",
+    "label.noReportSelected": "No report selected",
+    "label.reportSelected": " selected",
+    "label.downloadingFile": "Downloading report...",
+    "label.pleaseWait": "Please wait",
 
     // Input Labels
     "inputLabel.username": "Username",

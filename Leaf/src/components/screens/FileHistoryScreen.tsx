@@ -26,10 +26,8 @@ interface Props {
 
 const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-    const [selectAll, setSelectAll] = useState(false);
     const [notify, setNotify] = useState(false);
-    const {showErrorNotification, showSuccessNotification} = useNotificationSession();
-    const [downloadUrl, setDownloadUrl] = useState('');
+    const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
 
     const toggleReportSelect = (report: Report) => {
         setNotify(false);
@@ -40,17 +38,8 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         }
     };
 
-    const toggleSelectAll = () => {
-        setNotify(false);
-        if (selectAll) {
-            setSelectedReport(null);
-        } else {
-            setSelectedReport(reports.length > 0 ? reports[0] : null);
-        }
-        setSelectAll(!selectAll);
-    };
-
     const exportReport = async () => {
+        showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download')
         if (selectedReport) {
             const file_id: string = selectedReport["drive_id"]
             const report_name: string = selectedReport["name"]
@@ -112,7 +101,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                     >
                         {selectedReport === null
                             ? strings("label.noReportSelected")
-                            : strings("label.reportSelected")}
+                            : selectedReport["name"] + strings("label.reportSelected")}
                     </LeafText>
                 </HStack>
             </VStack>
