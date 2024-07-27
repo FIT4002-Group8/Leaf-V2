@@ -1,59 +1,90 @@
-# test_drive_operations.py
 import unittest
 from unittest.mock import patch, MagicMock
-import drive_operations
+from export import authenticate_user, get_firestore_client, get_drive_service, save_file_id_to_firestore, upload_file_to_drive, download_file
 
-class TestDriveOperations(unittest.TestCase):
-    @patch('drive_operations.GoogleAuth')
-    @patch('drive_operations.GoogleDrive')
-    def setUp(self, MockGoogleDrive, MockGoogleAuth):
-        # Mock authentication and Google Drive object
-        self.mock_auth = MockGoogleAuth.return_value
-        self.mock_drive = MockGoogleDrive.return_value
-        self.drive = drive_operations.authenticate()
+class TestGoogleDriveFirestoreIntegration(unittest.TestCase):
 
-    def test_upload_file(self):
-        # Mock file upload
-        mock_file = MagicMock()
-        mock_file.Upload.return_value = None
-        mock_file.__getitem__.return_value = 'mock_file_id'
-        self.mock_drive.CreateFile.return_value = mock_file
+    @patch('export.google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file')
+    def test_authenticate_user(self, mock_from_client_secrets_file):
+        mock_flow = MagicMock()
+        mock_from_client_secrets_file.return_value = mock_flow
+        mock_creds = MagicMock()
+        mock_flow.run_local_server.return_value = mock_creds
 
-        # Call the function
-        file_id = drive_operations.upload_file(self.drive, 'Hello.txt', 'Hello World!')
+        creds = authenticate_user()
 
-        # Assertions
-        self.assertEqual(file_id, 'mock_file_id')
-        self.mock_drive.CreateFile.assert_called_with({'title': 'Hello.txt'})
-        mock_file.SetContentString.assert_called_with('Hello World!')
-        mock_file.Upload.assert_called_once()
+        mock_from_client_secrets_file.assert_called_once()
+        mock_flow.run_local_server.assert_called_once()
+        self.assertEqual(creds, mock_creds)
 
-    def test_list_files(self):
-        # Mock file listing
-        mock_file1 = {'title': 'File1', 'id': 'id1'}
-        mock_file2 = {'title': 'File2', 'id': 'id2'}
-        self.mock_drive.ListFile.return_value.GetList.return_value = [mock_file1, mock_file2]
+    @patch('export.firestore.Client')
+    def test_get_firestore_client(self, mock_firestore_client):
+        mock_creds = MagicMock()
+        mock_client = MagicMock()
+        mock_firestore_client.return_value = mock_client
 
-        # Call the function
-        files = drive_operations.list_files(self.drive)
+        client = get_firestore_client(mock_creds)
 
-        # Assertions
-        self.assertEqual(files, [('File1', 'id1'), ('File2', 'id2')])
-        self.mock_drive.ListFile.assert_called_with({'q': "'root' in parents and trashed=false"})
-        self.mock_drive.ListFile.return_value.GetList.assert_called_once()
+        mock_firestore_client.assert_called_once_with(project=mock_creds.project_id, credentials=mock_creds)
+        self.assertEqual(client, mock_client)
 
-    def test_download_file(self):
-        # Mock file download
-        mock_file = MagicMock()
-        self.mock_drive.CreateFile.return_value = mock_file
+    @patch('export.build')
+    def test_get_drive_service(self, mock_build):
+        mock_creds = MagicMock()
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
 
-        # Call the function
-        downloaded_file = drive_operations.download_file(self.drive, 'mock_file_id', 'Hello_Downloaded.txt')
+        service = get_drive_service(mock_creds)
 
-        # Assertions
-        self.assertEqual(downloaded_file, 'Hello_Downloaded.txt')
-        self.mock_drive.CreateFile.assert_called_with({'id': 'mock_file_id'})
-        mock_file.GetContentFile.assert_called_with('Hello_Downloaded.txt')
+        mock_build.assert_called_once_with('drive', 'v3', credentials=mock_creds)
+        self.assertEqual(service, mock_service)
+
+    @patch('export.firestore.Client')
+    def test_save_file_id_to_firestore(self, mock_firestore_client):
+        mock_db = MagicMock()
+        mock_doc_ref = MagicMock()
+        mock_firestore_client.return_value.collection.return_value.document.return_value = mock_doc_ref
+
+        save_file_id_to_firestore('test_file_id', mock_db)
+
+        mock_firestore_client.return_value.collection.assert_called_once_with('files')
+        mock_firestore_client.return_value.collection.return_value.document.assert_called_once_with('test_file_id')
+        mock_doc_ref.set.assert_called_once_with({'file_id': 'test_file_id'})
+
+    @patch('export.MediaFileUpload')
+    @patch('export.get_drive_service')
+    def test_upload_file_to_drive(self, mock_get_drive_service, mock_media_file_upload):
+        mock_drive_service = MagicMock()
+        mock_get_drive_service.return_value = mock_drive_service
+        mock_request = MagicMock()
+        mock_drive_service.files.return_value.create.return_value = mock_request
+        mock_request.next_chunk.side_effect = [(MagicMock(progress=0.5), None), (MagicMock(progress=1.0), {})]
+
+        file_id = upload_file_to_drive('C:/Users/lukew/Desktop/upload_me.txt', mock_drive_service)
+
+        mock_media_file_upload.assert_called_once_with('C:/Users/lukew/Desktop/upload_me.txt', resumable=True)
+        mock_drive_service.files.return_value.create.assert_called_once()
+        self.assertEqual(file_id, {})
+
+    @patch('export.MediaIoBaseDownload')
+    @patch('export.open')
+    @patch('export.get_drive_service')
+    def test_download_file(self, mock_get_drive_service, mock_open, mock_media_io_base_download):
+        mock_drive_service = MagicMock()
+        mock_get_drive_service.return_value = mock_drive_service
+        mock_request = MagicMock()
+        mock_drive_service.files.return_value.get_media.return_value = mock_request
+        mock_open.return_value.__enter__.return_value = MagicMock()
+        mock_downloader = MagicMock()
+        mock_media_io_base_download.return_value = mock_downloader
+        mock_downloader.next_chunk.side_effect = [(MagicMock(progress=0.5), False), (MagicMock(progress=1.0), True)]
+
+        download_file('test_file_id', mock_drive_service)
+
+        mock_drive_service.files.return_value.get_media.assert_called_once_with(fileId='test_file_id')
+        mock_open.assert_called_once_with('C:/Users/lukew/Desktop/downloaded_test_file_id.txt', 'wb')
+        mock_media_io_base_download.assert_called_once()
+        mock_downloader.next_chunk.assert_called()
 
 if __name__ == '__main__':
     unittest.main()
