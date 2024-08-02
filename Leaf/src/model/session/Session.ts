@@ -18,6 +18,8 @@ import { LoginStatus } from "../../state/publishers/types/LoginStatus";
 import AccountsManager from "./AccountsManager";
 import Account from "../account/Account";
 import { assertionFailure } from "../../language/assertions/AssertionFailsure";
+import NewFileManager from "./NewFileManager";
+import File from "../file/File";
 
 class Session {
     public static readonly inst = new Session();
@@ -442,6 +444,10 @@ class Session {
 
     public async updateAccount(account: Account): Promise<boolean> {
         return AccountsManager.inst.updateAccount(account);
+    }
+
+    public async submitNewFile(file: File): Promise<boolean> {
+        return NewFileManager.inst.newFileCreated(file);
     }
 }
 

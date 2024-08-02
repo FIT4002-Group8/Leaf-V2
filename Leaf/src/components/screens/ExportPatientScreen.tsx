@@ -1,5 +1,5 @@
 import {NavigationProp, ParamListBase} from "@react-navigation/native";
-import React, {useEffect, useLayoutEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {strings} from "../../localisation/Strings";
 import Session from "../../model/session/Session";
 import StateManager from "../../state/publishers/StateManager";
@@ -26,6 +26,11 @@ import {TriageCode} from "../../model/triage/TriageCode";
 import LeafSelectionInputModified from "../base/LeafListSelection/LeafSelectionInputModified";
 import TriageCodePickerModified from "../custom/TriageCodePickerModified";
 import SexPicker from "../custom/SexPickerModified";
+import axios from "axios";
+import File from "../../model/file/File";
+import {FileFilters} from "../../model/file/FileFilters";
+import {filtersToDataObject} from "../../model/file/filtersUtils";
+import {useNotificationSession} from "../base/LeafDropNotification/NotificationSession";
 
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
@@ -45,6 +50,8 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const [triageCode, setTriageCode] = useState<TriageCode | undefined>(activePatient?.triageCase?.triageCode);
     const [selectedReportType, setSelectedReportType] = useState<string | undefined>();
     const [selectedButton, setSelectedButton] = useState<string | null>(null);
+    const user = Session.inst.loggedInAccount;
+    const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
 
     // Effect to handle fetching and updating workers data
     useEffect(() => {
@@ -53,7 +60,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
             setFilteredWorkers(Session.inst.getAllWorkers());
         });
 
-        setComponentWidth(window.innerWidth-264)
+        setComponentWidth(window.innerWidth - 264);
 
         // Fetch all workers when the component is mounted
         Session.inst.fetchAllWorkers();
@@ -76,7 +83,6 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const columnCount = determineColumnCount(componentWidth);
     const buttonSpacing = LeafDimensions.screenSpacing;
     const buttonWidth = (componentWidth - ((columnCount - 1) * buttonSpacing / 2)) / columnCount;
-    console.log(componentWidth);
 
     // Function to handle custom tile selection
     const handleCustomTileSelection = () => {
@@ -131,6 +137,69 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
             setSelectedButton(buttonLabel);
             // Handle report type selection
             handleReportTypeSelection(buttonLabel);
+        }
+    };
+
+    const generateReport = async () => {
+        showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download')
+        if (selectedReportType) {
+            try {
+                // Create file properties
+                const title: string = "Test Report";
+                const author: string = user.fullName;
+                const report_type: string = selectedReportType;
+                const created: Date = new Date();
+
+                // TODO - Create filters object
+                const filters: FileFilters = {
+                    assigned_to: "",
+                    hospital_site: "",
+                    medical_unit: "",
+                    sex: "",
+                    triage_code: [], // Adjust according to TriageCode structure
+                    ward: "",
+                };
+                // Make the GET request to the Flask endpoint
+                const csv_file_id = await axios.get('http://127.0.0.1:5000/upload-csv', {
+                    params: {title: 'test.csv'},
+                });
+
+                // Generate or fetch file_id
+                const file_id: string = csv_file_id.data["id"];
+                console.log(csv_file_id.data["id"]);
+
+                // Create File object
+                const file = new File(
+                    file_id,
+                    title,
+                    author,
+                    report_type,
+                    created,
+                    filters
+                );
+
+                // Set file in session or save to DB
+                await Session.inst.submitNewFile(file);
+
+                const response = await axios.get('http://127.0.0.1:5000/download-zip', {
+                    params: {file_id: file_id},
+                    responseType: 'blob', // Important for handling binary data
+                });
+
+                // Create a URL for the blob and trigger download
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${title}.zip`; // The file name for download
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url); // Clean up the URL object
+                showSuccessNotification(strings("feedback.successDownloadReport"));
+            } catch (error) {
+                console.error('Error downloading the file', error);
+                showErrorNotification(strings("feedback.failDownloadReport"));
+            }
         }
     };
 
@@ -258,7 +327,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                     color={LeafColors.accent}
                     onPress={async () => {
                         // TODO - Handle export logic
-                        // await exportPatient(selectedPatients);
+                        await generateReport();
                     }}
                 />
             </VStack>
