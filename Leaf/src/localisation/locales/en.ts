@@ -158,6 +158,7 @@ export default {
     "label.noReportSelected": "No report selected",
     "label.reportSelected": " selected",
     "label.downloadingFile": "Downloading report...",
+    "label.generatingReport": "Generating report...",
     "label.pleaseWait": "Please wait",
 
     // Input Labels
@@ -352,4 +353,5 @@ export default {
     "feedback.successExportReport": "Report exported",
     "feedback.successDownloadReport": "Report downloaded",
     "feedback.failDownloadReport": "Error downloading report",
+    "feedback.failGenerateReport": "Error generating report",
 };

@@ -141,8 +141,8 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     };
 
     const generateReport = async () => {
-        showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download')
-        if (selectedReportType) {
+        if (selectedReportType && selectedButton) {
+            showDefaultNotification(strings("label.pleaseWait"), strings("label.generatingReport"), 'progress-download')
             try {
                 // Create file properties
                 const title: string = "Test Report";
@@ -198,8 +198,10 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                 showSuccessNotification(strings("feedback.successDownloadReport"));
             } catch (error) {
                 console.error('Error downloading the file', error);
-                showErrorNotification(strings("feedback.failDownloadReport"));
+                showErrorNotification(strings("feedback.failGenerateReport"));
             }
+        } else {
+            showErrorNotification(strings("label.noReportSelected"));
         }
     };
 
@@ -326,7 +328,6 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                     type={LeafButtonType.Filled}
                     color={LeafColors.accent}
                     onPress={async () => {
-                        // TODO - Handle export logic
                         await generateReport();
                     }}
                 />
