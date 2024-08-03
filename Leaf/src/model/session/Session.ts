@@ -20,6 +20,7 @@ import Account from "../account/Account";
 import { assertionFailure } from "../../language/assertions/AssertionFailsure";
 import NewFileManager from "./NewFileManager";
 import File from "../file/File";
+import FileManager from "./FileManager";
 
 class Session {
     public static readonly inst = new Session();
@@ -65,6 +66,8 @@ class Session {
     private _activeWorkerID: EmployeeID | null = null;
     // The id of the leader currently being previewed within the app (any screen)
     private _activeLeaderID: EmployeeID | null = null;
+     // ALl workers (continuously updated from database fetches) [ID: Worker]
+    private _fileStore: { [key: string]: File } = {};
 
     public get loggedInAccount(): Employee {
         if (this._loggedInAccount == null) {
@@ -281,6 +284,10 @@ class Session {
         return Object.values(this._workerStore);
     }
 
+    public getAllFiles(): File[] {
+        return Object.values(this._fileStore);
+    }
+
     public getAllHashedWorkers(): { [key: string]: Worker } {
         return { ...this._workerStore };
     }
@@ -340,6 +347,19 @@ class Session {
         }
         // Notify subscribers
         StateManager.workersFetched.publish();
+    }
+
+    public async fetchAllFiles() {
+        // Restore files from the database
+        const files = await FileManager.inst.getFiles();
+        // Invalidate cache, since we're restoring all files, and some may have been deleted
+        this._fileStore = {};
+        // Cache files
+        for (const file of files) {
+            this._fileStore[file.id.toString()] = file;
+        }
+        // Notify subscribers
+        StateManager.filesFetched.publish();
     }
 
     public async fetchWorker(id: EmployeeID) {

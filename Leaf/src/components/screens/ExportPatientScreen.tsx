@@ -10,7 +10,6 @@ import LeafTypography from "../styling/LeafTypography";
 import LeafColors from "../styling/LeafColors";
 import LeafDimensions from "../styling/LeafDimensions";
 import LargeMenuButtonModified from "../custom/LargeMenuButtonModified";
-import NavigationSession from "../navigation/state/NavigationEnvironment";
 import VGap from "../containers/layout/VGap";
 import HStack from "../containers/HStack";
 import VStack from "../containers/VStack";
@@ -29,7 +28,6 @@ import SexPicker from "../custom/SexPickerModified";
 import axios from "axios";
 import File from "../../model/file/File";
 import {FileFilters} from "../../model/file/FileFilters";
-import {filtersToDataObject} from "../../model/file/filtersUtils";
 import {useNotificationSession} from "../base/LeafDropNotification/NotificationSession";
 
 interface Props {
@@ -117,7 +115,6 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
 
         if (reportType === "Custom Report") {
             setIsCustomTileSelected(true);
-            console.log(`Here: ${reportType}`);
         } else {
             setIsCustomTileSelected(false);
         }

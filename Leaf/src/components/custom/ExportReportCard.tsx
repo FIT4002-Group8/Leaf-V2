@@ -1,6 +1,6 @@
 import React from "react";
 import { View, ViewStyle, TouchableOpacity } from "react-native";
-import { Report } from "../../preset_data/ReportData";
+import File from "../../model/file/File";
 import LeafText from "../base/LeafText/LeafText";
 import FlatContainer from "../containers/FlatContainer";
 import HStack from "../containers/HStack";
@@ -13,7 +13,7 @@ import { LeafIconSize } from "../base/LeafIcon/LeafIconSize";
 import Spacer from "../containers/layout/Spacer";
 
 interface Props {
-    report: Report;
+    report: File;
     style?: ViewStyle;
     isSelected: boolean;
     onPress: () => void;
@@ -26,11 +26,11 @@ const reportTypeToIcon: { [key: string]: string } = {
 };
 
 const ExportReportCard: React.FC<Props> = ({ report, style, isSelected, onPress }) => {
-    const datetimeText = `${report.date.toLocaleTimeString("en-AU", {
+    const datetimeText = `${report.created.toLocaleTimeString("en-AU", {
         hour: "numeric",
         minute: "numeric",
         hour12: true,
-    }).toUpperCase()}, ${report.date.toDateString()}`;
+    }).toUpperCase()}, ${report.created.toDateString()}`;
 
     const separator = `  |  `;
     const created = `Created: `;
@@ -58,7 +58,7 @@ const ExportReportCard: React.FC<Props> = ({ report, style, isSelected, onPress 
                         }}
                     >
                         <LeafIcon
-                            icon={reportTypeToIcon[report.type] || "file-outline"}
+                            icon={reportTypeToIcon[report.reportType] || "file-outline"}
                             color={LeafColors.textWhite}
                             size={LeafIconSize.Medium}
                         />
@@ -67,7 +67,7 @@ const ExportReportCard: React.FC<Props> = ({ report, style, isSelected, onPress 
                     <VStack style={{ flexShrink: 1 }}>
                         <View style={{ alignSelf: "flex-start" }}>
                             <LeafText typography={LeafTypography.title3} verticalWrap={true}>
-                                {report.name}
+                                {report.title}
                             </LeafText>
                         </View>
 
@@ -75,8 +75,8 @@ const ExportReportCard: React.FC<Props> = ({ report, style, isSelected, onPress 
 
                         <LeafText typography={LeafTypography.subscript}>
                             {created}{datetimeText}{separator}
-                            {author}{report.creator}{separator}
-                            {type}{report.type}
+                            {author}{report.author}{separator}
+                            {type}{report.reportType}
                         </LeafText>
                     </VStack>
 

@@ -1,6 +1,4 @@
-// FileHistoryScreen.tsx
-
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {FlatList, ScrollView} from "react-native";
 import {NavigationProp, ParamListBase} from "@react-navigation/native";
 import {strings} from "../../localisation/Strings";
@@ -15,23 +13,40 @@ import LeafColors from "../styling/LeafColors";
 import LeafDimensions from "../styling/LeafDimensions";
 import LeafTypography from "../styling/LeafTypography";
 import {useNotificationSession} from "../base/LeafDropNotification/NotificationSession";
-import reports, {Report} from "../../preset_data/ReportData";
 import ExportReportCard from "../custom/ExportReportCard";
 import FormHeader from "../custom/FormHeader";
 import axios from 'axios';
+import Session from "../../model/session/Session";
+import StateManager from "../../state/publishers/StateManager";
+import File from "../../model/file/File";
 
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
 }
 
 const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
-    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    const [selectedReport, setSelectedReport] = useState<File | null>(null);
     const [notify, setNotify] = useState(false);
     const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
+    const [files, setFiles] = useState<File[]>([]);
 
-    const toggleReportSelect = (report: Report) => {
+    useEffect(() => {
+        const unsubscribeFiles = StateManager.filesFetched.subscribe(() => {
+            setFiles(Session.inst.getAllFiles());
+        });
+
+        // Fetch files initially
+        Session.inst.fetchAllFiles();
+
+        // Cleanup subscription on unmount
+        return () => {
+            unsubscribeFiles();
+        };
+    }, []);
+
+    const toggleReportSelect = (report: File) => {
         setNotify(false);
-        if (selectedReport && selectedReport.name === report.name) {
+        if (selectedReport && selectedReport.title === report.title) {
             setSelectedReport(null);
         } else {
             setSelectedReport(report);
@@ -41,36 +56,58 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
     const exportReport = async () => {
         showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download')
         if (selectedReport) {
-            const file_id: string = selectedReport["drive_id"]
-            const report_name: string = selectedReport["name"]
+            const file_id: string = selectedReport.id;
+            const report_name: string = selectedReport.title;
 
             try {
-                // Make the GET request to the Flask endpoint
                 const response = await axios.get('http://127.0.0.1:5000/download-zip', {
                     params: {file_id: file_id},
-                    responseType: 'blob', // Important for handling binary data
+                    responseType: 'blob',
                 });
 
-                // Create a URL for the blob and trigger download
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${report_name}.zip`; // The file name for download
+                a.download = `${report_name}.zip`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                window.URL.revokeObjectURL(url); // Clean up the URL object
+                window.URL.revokeObjectURL(url);
                 showSuccessNotification(strings("feedback.successDownloadReport"));
             } catch (error) {
                 console.error('Error downloading the file', error);
                 showErrorNotification(strings("feedback.failDownloadReport"));
             }
-        }
-        else {
+        } else {
             setNotify(true);
             showErrorNotification(strings("label.noReportSelected"));
         }
     };
+
+    // Define the interface for the grouped reports
+    interface GroupedReports {
+        monthYear: string;
+        reports: File[];
+    }
+
+    const groupReportsByMonth = (reports: File[]): GroupedReports[] => {
+        const groupedReports: GroupedReports[] = [];
+        reports
+            .slice()
+            .sort((a, b) => b.created.getTime() - a.created.getTime())
+            .forEach(report => {
+                const monthYear = report.created.toLocaleString('default', {month: 'long', year: 'numeric'});
+                const existingGroupIndex = groupedReports.findIndex(group => group.monthYear === monthYear);
+                if (existingGroupIndex !== -1) {
+                    groupedReports[existingGroupIndex].reports.push(report);
+                } else {
+                    groupedReports.push({monthYear: monthYear, reports: [report]});
+                }
+            });
+        return groupedReports;
+    };
+
+    const groupedReports = groupReportsByMonth(files);
 
     return (
         <DefaultScreenContainer>
@@ -101,7 +138,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                     >
                         {selectedReport === null
                             ? strings("label.noReportSelected")
-                            : selectedReport["name"] + strings("label.reportSelected")}
+                            : selectedReport.title + strings("label.reportSelected")}
                     </LeafText>
                 </HStack>
             </VStack>
@@ -110,7 +147,6 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
 
             <VStack>
                 <ScrollView style={{flex: 1, width: "100%"}}>
-                    {/* Iterate over reports grouped by month and render */}
                     {groupedReports.map((group, index) => (
                         <VStack key={index}>
                             <FormHeader
@@ -121,11 +157,11 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                                 renderItem={({item: report}) => (
                                     <ExportReportCard
                                         report={report}
-                                        isSelected={selectedReport?.name === report.name}
+                                        isSelected={selectedReport?.title === report.title}
                                         onPress={() => toggleReportSelect(report)}
                                     />
                                 )}
-                                keyExtractor={(report) => report.name}
+                                keyExtractor={(report) => report.id}
                                 ItemSeparatorComponent={() => <VGap size={LeafDimensions.cardSpacing}/>}
                                 scrollEnabled={false}
                                 style={{
@@ -143,30 +179,3 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
 };
 
 export default FileHistoryScreen;
-
-// Define the interface for the grouped reports
-interface GroupedReports {
-    monthYear: string;
-    reports: Report[];
-}
-
-// Group reports by month and sort the reports within each group by date
-const groupedReports: GroupedReports[] = [];
-reports
-    .slice() // Create a copy of reports array to avoid modifying the original array
-    .sort((a, b) => b.date.getTime() - a.date.getTime()) // Sort reports by date in descending order
-    .forEach(report => {
-        const monthYear = report.date.toLocaleString('default', {month: 'long', year: 'numeric'});
-        const existingGroupIndex = groupedReports.findIndex(group => group.monthYear === monthYear);
-        if (existingGroupIndex !== -1) {
-            groupedReports[existingGroupIndex].reports.push(report);
-        } else {
-            // Create a new group and add the report to it
-            groupedReports.push({monthYear: monthYear, reports: [report]});
-        }
-    });
-
-// Sort the reports within each group by date in descending order
-groupedReports.forEach(group => {
-    group.reports.sort((a, b) => b.date.getTime() - a.date.getTime());
-});
