@@ -8,6 +8,7 @@ export enum FileField {
     Title = "title",
     Author = "author",
     ReportType = "reportType",
+    Password = "password",
     Created = "created",
     Filters = "filters",
 }
@@ -19,6 +20,7 @@ class FileDataObject {
             .addString(FileField.Title, file.title)
             .addString(FileField.Author, file.author)
             .addString(FileField.ReportType, file.reportType)
+            .addString(FileField.Password, file.password)
             .addDate(FileField.Created, file.created)
             .addObject(FileField.Filters, filtersToDataObject(file.filters));
     }
@@ -28,15 +30,16 @@ class FileDataObject {
         const title = data.getStringOrNull(FileField.Title);
         const author = data.getStringOrNull(FileField.Author);
         const reportType = data.getStringOrNull(FileField.ReportType);
+        const password = data.getStringOrNull(FileField.Password);
         const created = data.getDateOrNull(FileField.Created);
         const filters = data.getObjectOrNull<FileFilters>(FileField.Filters);
 
-        if (!id || !title || !author || !reportType || created == null || filters == null) {
+        if (!id || !title || !author || !reportType || !password || created == null || filters == null) {
             console.error("[FileDataObject] Failed to restore File");
             return null;
         }
 
-        return new File(id, title, author, reportType, created, filters);
+        return new File(id, title, author, reportType, password, created, filters);
     }
 }
 

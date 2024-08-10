@@ -10,7 +10,7 @@ import LeafTypography from "../styling/LeafTypography";
 import LeafColors from "../styling/LeafColors";
 import LeafDimensions from "../styling/LeafDimensions";
 import LargeMenuButtonModified from "../custom/LargeMenuButtonModified";
-import VGap from "../containers/layout/VGap";
+ import VGap from "../containers/layout/VGap";
 import HStack from "../containers/HStack";
 import VStack from "../containers/VStack";
 import LeafSelectionItem from "../base/LeafListSelection/LeafSelectionItem";
@@ -29,6 +29,7 @@ import axios from "axios";
 import File from "../../model/file/File";
 import {FileFilters} from "../../model/file/FileFilters";
 import {useNotificationSession} from "../base/LeafDropNotification/NotificationSession";
+import ExportPopup from "../custom/ExportPopup";
 
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
@@ -50,6 +51,22 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const [selectedButton, setSelectedButton] = useState<string | null>(null);
     const user = Session.inst.loggedInAccount;
     const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
+    const [isPopupVisible, setPopupVisible] = useState(false);
+
+    const handleExportButtonPress = () => {
+        if (selectedButton){
+            setPopupVisible(true);
+        }
+        else {
+            showErrorNotification(strings("label.noReportSelected"));
+        }
+    }
+
+    // Function to handle export from the popup
+    const handleExport = async (title: string, password: string) => {
+        // Call generateReport with title and password
+        await generateReport(title, password);
+    };
 
     // Effect to handle fetching and updating workers data
     useEffect(() => {
@@ -137,12 +154,11 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
         }
     };
 
-    const generateReport = async () => {
+    const generateReport = async (title: string, password: string) => {
         if (selectedReportType && selectedButton) {
             showDefaultNotification(strings("label.pleaseWait"), strings("label.generatingReport"), 'progress-download')
             try {
                 // Create file properties
-                const title: string = "Test Report";
                 const author: string = user.fullName;
                 const report_type: string = selectedReportType;
                 const created: Date = new Date();
@@ -171,30 +187,14 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                     title,
                     author,
                     report_type,
+                    password,
                     created,
                     filters
                 );
-
                 // Set file in session or save to DB
                 await Session.inst.submitNewFile(file);
-
-                const response = await axios.get('http://127.0.0.1:5000/download-zip', {
-                    params: {file_id: file_id},
-                    responseType: 'blob', // Important for handling binary data
-                });
-
-                // Create a URL for the blob and trigger download
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${title}.zip`; // The file name for download
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url); // Clean up the URL object
-                showSuccessNotification(strings("feedback.successDownloadReport"));
             } catch (error) {
-                console.error('Error downloading the file', error);
+                console.error('Error generating the report', error);
                 showErrorNotification(strings("feedback.failGenerateReport"));
             }
         } else {
@@ -324,11 +324,14 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                     typography={LeafTypography.button}
                     type={LeafButtonType.Filled}
                     color={LeafColors.accent}
-                    onPress={async () => {
-                        await generateReport();
-                    }}
+                    onPress={handleExportButtonPress}
                 />
             </VStack>
+            <ExportPopup
+                isVisible={isPopupVisible}
+                onClose={() => setPopupVisible(false)}
+                onExport={handleExport}
+            />
         </DefaultScreenContainer>
     );
 };

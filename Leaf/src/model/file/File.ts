@@ -13,6 +13,7 @@ class File {
     protected _title: string;
     protected _author: string;
     protected _reportType: string;
+    protected _password: string;
     protected _created: Date;
     protected _filters: Filters = {};
 
@@ -26,6 +27,10 @@ class File {
 
     public get reportType(): string {
         return this._reportType;
+    }
+
+    public get password(): string {
+        return this._password;
     }
 
     public get created(): Date {
@@ -45,6 +50,7 @@ class File {
         title: string,
         author: string,
         reportType: string,
+        password: string,
         created: Date,
         filters: Filters
     ) {
@@ -52,6 +58,7 @@ class File {
         this._title = title;
         this._author = author;
         this._reportType = reportType;
+        this._password = password;
         this._created = created;
         this._filters = filters;
     }
@@ -70,6 +77,10 @@ class File {
 
     public setCreated(created: Date) {
         this._created = created;
+    }
+
+    public setPassword(password: string) {
+        this._password = password;
     }
 
     public setFilters(filters: Filters) {
