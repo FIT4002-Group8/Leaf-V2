@@ -174,7 +174,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                 };
                 // Make the GET request to the Flask endpoint
                 const csv_file_id = await axios.get('http://127.0.0.1:5000/upload-csv', {
-                    params: {title: 'test.csv'},
+                    params: {title: title},
                 });
 
                 // Generate or fetch file_id
@@ -193,6 +193,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                 );
                 // Set file in session or save to DB
                 await Session.inst.submitNewFile(file);
+                showSuccessNotification(strings("feedback.successGenerateReport"));
             } catch (error) {
                 console.error('Error generating the report', error);
                 showErrorNotification(strings("feedback.failGenerateReport"));

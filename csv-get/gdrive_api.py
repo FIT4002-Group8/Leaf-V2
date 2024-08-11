@@ -5,6 +5,8 @@ from pydrive.drive import GoogleDrive
 import pyzipper
 import tempfile
 from flask_cors import CORS
+from io import StringIO
+import csv
 
 app = Flask(__name__)
 CORS(app)
@@ -29,15 +31,17 @@ def authenticate_drive():
 @app.route('/download-zip', methods=['GET'])
 def download_zip():
     file_id = request.args.get('file_id')
+    file_title = request.args.get('file_title')
+    password = request.args.get('password')
+
     if not file_id:
         return jsonify({"error": "file_id parameter is required"}), 400
 
     try:
         drive = authenticate_drive()
 
-        csv_file_name = 'downloaded_file.csv'
-        zip_file_name = 'protected_file.zip'
-        password = 'password'
+        csv_file_name = f'{file_title}.csv'
+        zip_file_name = f'{file_title}.zip'
 
         temp_csv_path = os.path.join(tempfile.gettempdir(), csv_file_name)
         downloaded_file = drive.CreateFile({'id': file_id})
@@ -60,7 +64,7 @@ def download_zip():
 
 @app.route('/upload-csv', methods=['GET'])
 def upload_csv():
-    title = request.args.get('title')       # Use path as title atm
+    title = request.args.get('title')  # Use path as title atm
 
     if not title:
         return jsonify({"error": "invalid data"}), 400
@@ -69,10 +73,22 @@ def upload_csv():
     # TODO - ETL function call goes here
 
     try:
-        # Create File
+        # Create a CSV file in memory
+        csv_buffer = StringIO()
+        csv_writer = csv.writer(csv_buffer)
+        csv_writer.writerow([title])  # Write the title as the content of the CSV
+
+        # Convert the CSV content to a string and save it to a file
+        csv_content = csv_buffer.getvalue()
+        csv_filename = f'{title}.csv'
+
+        with open(csv_filename, 'w') as f:
+            f.write(csv_content)
+
+        # Upload the file to Google Drive
         drive = authenticate_drive()
-        file = drive.CreateFile()
-        file.SetContentFile(title)
+        file = drive.CreateFile({'title': csv_filename})
+        file.SetContentFile(csv_filename)
         file.Upload()
 
         # Return file ID for front end and download Add file info to Firestore Database

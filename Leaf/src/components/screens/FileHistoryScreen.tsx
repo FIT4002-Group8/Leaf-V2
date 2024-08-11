@@ -57,11 +57,13 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download')
         if (selectedReport) {
             const file_id: string = selectedReport.id;
+            const title: string = selectedReport.title;
             const report_name: string = selectedReport.title;
+            const password: string = selectedReport.password;
 
             try {
                 const response = await axios.get('http://127.0.0.1:5000/download-zip', {
-                    params: {file_id: file_id},
+                    params: {file_id: file_id, file_title: title, password: password},
                     responseType: 'blob',
                 });
 

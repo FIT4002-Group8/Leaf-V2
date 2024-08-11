@@ -191,6 +191,7 @@ export default {
     "inputLabel.triggerTime": "Trigger Time",
     "inputLabel.category": "Category",
     "inputLabel.assignedTo": "Assigned To",
+    "inputLabel.reportDetails": "Report Details",
 
     // Triage Form
     "triageForm.title.identity": "Patient Identity",
@@ -354,4 +355,5 @@ export default {
     "feedback.successDownloadReport": "Report downloaded",
     "feedback.failDownloadReport": "Error downloading report",
     "feedback.failGenerateReport": "Error generating report",
+    "feedback.successGenerateReport": "Report successfully generated",
 };
