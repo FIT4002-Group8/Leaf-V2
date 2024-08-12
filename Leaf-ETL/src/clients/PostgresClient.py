@@ -32,7 +32,7 @@ class PostgresClient:
 
     def reset_etl_tables(self):
         self.__check_connection()
-        self.__execute_query("TRUNCATE provider, patient, triage_case, events;")
+        self.execute_query("TRUNCATE provider, patient, triage_case, events;")
 
     def insert_providers(self, workers):
         self.__check_connection()
@@ -47,7 +47,7 @@ class PostgresClient:
             query += f"('{worker['id']}', '{worker['firstName']}', '{worker['lastName']}', '{worker['email']}', '{worker['currentHospitalId']}'),\n"
         query = query[:-2] + ";"
 
-        self.__execute_query(query)
+        self.execute_query(query)
 
     def insert_patients(self, patients):
         self.__check_connection()
@@ -62,7 +62,7 @@ class PostgresClient:
             query += f"('{patient['mrn'].replace('-', '')}', '{patient['firstName']}', '{patient['lastName']}', '{patient['dob']}', '{patient['phoneNumber']}', '{patient['postCode']}', '{patient['sex']}', '{patient['timeLastAllocated']}', '{patient['idAllocatedTo']}', '{patient['triageCase']['hospitalId']}'),\n"
         query = query[:-2] + ";"
 
-        self.__execute_query(query)
+        self.execute_query(query)
 
     def insert_triage_cases(self, patients):
         self.__check_connection()
@@ -79,7 +79,7 @@ class PostgresClient:
             query += f"('{triage['id']}', '{triage['triageCode']}', '{triage['triageText']}', '{patient['mrn'].replace('-', '')}', '{triage['arrivalDate']}', '{triage['arrivalWardId']}', '{triage['hospitalId']}', '{triage['medicalUnitId']}'),\n"
         query = query[:-2] + ";"
 
-        self.__execute_query(query)
+        self.execute_query(query)
 
     def insert_events(self, patients):
         self.__check_connection()
@@ -96,13 +96,9 @@ class PostgresClient:
                 query += f"('{event['id']}', '{patient['mrn'].replace('-', '')}', '{event['title']}', '{event['description']}', '{event['category'].replace(' ', '_')}', '{event['createdAt']}', '{event['lastCompleted']}', '{event['triggerTime']}'),\n"
         query = query[:-2] + ";"
 
-        self.__execute_query(query)
+        self.execute_query(query)
 
-    def __check_connection(self):
-        if self.connection is None:
-            raise DatabaseError("Connection not established. Call connect() first.")
-
-    def __execute_query(self, query):
+    def execute_query(self, query):
         try:
             with self.connection.cursor() as cursor:
                 cursor.execute(query)
@@ -110,3 +106,7 @@ class PostgresClient:
                 print("Query executed successfully")
         except Exception as e:
             raise DatabaseError("Error executing query", e)
+
+    def __check_connection(self):
+        if self.connection is None:
+            raise DatabaseError("Connection not established. Call connect() first.")

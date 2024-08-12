@@ -8,7 +8,13 @@ class EtlController:
         self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
 
     def trigger_process(self):
+        print("Beginning EXTRACT Stage")
         self.__extract()
+        print("EXTRACT Stage Completed")
+
+        print("Beginning TRANSFORM Stage")
+        self.__transform()
+        print("TRANSFORM Stage Completed")
 
     def __extract(self):
         # Connect to Postgres & reset the tables
@@ -25,3 +31,16 @@ class EtlController:
         self.postgres_client.insert_triage_cases(patients_collection)
         self.postgres_client.insert_events(patients_collection)
         self.postgres_client.close()
+
+    def __transform(self):
+        self.postgres_client.connect()
+
+        fd = open('postgres/transformations/1_person.sql', 'r')
+        sqlFile = fd.read()
+        fd.close()
+
+        sqlCommands = sqlFile.split(';')
+
+        for command in sqlCommands:
+            if command:
+                self.postgres_client.execute_query(command)

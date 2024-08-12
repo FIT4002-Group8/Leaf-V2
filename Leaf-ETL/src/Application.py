@@ -39,7 +39,7 @@ def create_app(test_config=None):
             res = {"error": "Error while accessing database"}
             return Response(status=400, mimetype="application/json", response=json.dumps(res))
 
-        res = {"message": "Successfully extracted data from Firestore to Postgres"}
+        res = {"message": "Successfully completed ETL process"}
         return Response(status=200, mimetype="application/json", response=json.dumps(res))
 
     return app
