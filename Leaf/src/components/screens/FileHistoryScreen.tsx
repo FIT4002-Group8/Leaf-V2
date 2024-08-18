@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {FlatList, ScrollView} from "react-native";
+import {FlatList, ScrollView, View} from "react-native";
 import {NavigationProp, ParamListBase} from "@react-navigation/native";
 import {strings} from "../../localisation/Strings";
 import DefaultScreenContainer from "./containers/DefaultScreenContainer";
@@ -19,6 +19,8 @@ import axios from 'axios';
 import Session from "../../model/session/Session";
 import StateManager from "../../state/publishers/StateManager";
 import File from "../../model/file/File";
+import LeafDateInput from "../base/LeafDateInput/LeafDateInput";
+import LeafReportSearchBar from "../base/LeafSearchBar/LeafReportSearchBar";
 
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
@@ -29,6 +31,12 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
     const [notify, setNotify] = useState(false);
     const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
     const [files, setFiles] = useState<File[]>([]);
+
+    // Filter states
+    const [titleFilter, setTitleFilter] = useState<string>("");
+    const [fromDateFilter, setFromDateFilter] = useState<Date | undefined>();
+    const [toDateFilter, setToDateFilter] = useState<Date | undefined>(new Date());
+    const [dateError, setDateError] = useState<string | null>(null);
 
     useEffect(() => {
         const unsubscribeFiles = StateManager.filesFetched.subscribe(() => {
@@ -54,7 +62,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
     };
 
     const exportReport = async () => {
-        showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download')
+        showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download');
         if (selectedReport) {
             const file_id: string = selectedReport.id;
             const title: string = selectedReport.title;
@@ -109,7 +117,29 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         return groupedReports;
     };
 
-    const groupedReports = groupReportsByMonth(files);
+    const applyFilters = (reports: File[]): File[] => {
+        if (dateError) {
+            return [];
+        }
+        return reports.filter(report => {
+            const matchesTitle = titleFilter === "" || report.title.toLowerCase().includes(titleFilter.toLowerCase());
+            const matchesFromDate = !fromDateFilter || report.created >= fromDateFilter;
+            const matchesToDate = !toDateFilter || report.created <= toDateFilter;
+            return matchesTitle && matchesFromDate && matchesToDate;
+        });
+    };
+
+    // Validate dates
+    useEffect(() => {
+        if (fromDateFilter && toDateFilter && fromDateFilter > toDateFilter) {
+            setDateError("From date cannot be after the To date.");
+        } else {
+            setDateError(null);
+        }
+    }, [fromDateFilter, toDateFilter]);
+
+    const filteredReports = applyFilters(files);
+    const groupedReports = groupReportsByMonth(filteredReports);
 
     return (
         <DefaultScreenContainer>
@@ -125,6 +155,38 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                         console.log("Downloading report: ", selectedReport);
                     }}
                 />
+                {/* Filters */}
+                <HStack spacing={8} style={{display: 'flex', alignItems: 'center', width: '100%'}}>
+                    <View style={{flex: 3}}>
+                        <LeafReportSearchBar
+                            label={strings("search.underlying")}
+                            // value={titleFilter}
+                            onTextChange={setTitleFilter}
+                            data={[]}
+                            setData={() => {
+                            }}
+                            dataToString={(item) => item}
+                            style={{flex: 3}}
+                        />
+                    </View>
+                    <View style={{flex: 1}}>
+                        <LeafDateInput
+                            label={strings("label.fromDate")}
+                            onChange={(date) => {
+                                setFromDateFilter(date);
+                            }}
+                        />
+                    </View>
+                    <View style={{flex: 1, minWidth: '150px'}}>
+                        <LeafDateInput
+                            label={strings("label.toDate")}
+                            initialValue={new Date()}
+                            onChange={(date) => {
+                                setToDateFilter(date);
+                            }}
+                        />
+                    </View>
+                </HStack>
                 <HStack
                     spacing={16}
                     style={{
@@ -146,14 +208,11 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
             </VStack>
 
             <VGap size={12}/>
-
             <VStack>
                 <ScrollView style={{flex: 1, width: "100%"}}>
                     {groupedReports.map((group, index) => (
                         <VStack key={index}>
-                            <FormHeader
-                                title={group.monthYear}
-                            />
+                            <FormHeader title={group.monthYear}/>
                             <FlatList
                                 data={group.reports}
                                 renderItem={({item: report}) => (

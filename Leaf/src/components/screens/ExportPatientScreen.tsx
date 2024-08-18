@@ -1,4 +1,5 @@
 import {NavigationProp, ParamListBase} from "@react-navigation/native";
+import {View} from "react-native";
 import React, {useEffect, useState} from "react";
 import {strings} from "../../localisation/Strings";
 import Session from "../../model/session/Session";
@@ -10,7 +11,7 @@ import LeafTypography from "../styling/LeafTypography";
 import LeafColors from "../styling/LeafColors";
 import LeafDimensions from "../styling/LeafDimensions";
 import LargeMenuButtonModified from "../custom/LargeMenuButtonModified";
- import VGap from "../containers/layout/VGap";
+import VGap from "../containers/layout/VGap";
 import HStack from "../containers/HStack";
 import VStack from "../containers/VStack";
 import LeafSelectionItem from "../base/LeafListSelection/LeafSelectionItem";
@@ -30,6 +31,7 @@ import File from "../../model/file/File";
 import {FileFilters} from "../../model/file/FileFilters";
 import {useNotificationSession} from "../base/LeafDropNotification/NotificationSession";
 import ExportPopup from "../custom/ExportPopup";
+import LeafDateInput from "../base/LeafDateInput/LeafDateInput";
 
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
@@ -52,12 +54,15 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const user = Session.inst.loggedInAccount;
     const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
     const [isPopupVisible, setPopupVisible] = useState(false);
+    const [fromDateFilter, setFromDateFilter] = useState<Date | undefined>();
+    const [toDateFilter, setToDateFilter] = useState<Date | undefined>();
+    const [isFromDateValid, setIsFromDateValid] = useState(true);
+    const [isToDateValid, setIsToDateValid] = useState(true);
 
     const handleExportButtonPress = () => {
-        if (selectedButton){
+        if (selectedButton) {
             setPopupVisible(true);
-        }
-        else {
+        } else {
             showErrorNotification(strings("label.noReportSelected"));
         }
     }
@@ -108,6 +113,8 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
             setAssignedTo(undefined);
             setSelectedSexes([]);
             setTriageCode(undefined);
+            setFromDateFilter(undefined)
+            setToDateFilter(undefined)
         }
         setIsCustomTileSelected(!isCustomTileSelected);
     };
@@ -165,6 +172,8 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
 
                 // TODO - Create filters object
                 const filters: FileFilters = {
+                    from_date: null,
+                    to_date: null,
                     assigned_to: "",
                     hospital_site: "",
                     medical_unit: "",
@@ -244,9 +253,8 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                             description={tile.description}
                             onPress={tile.onPress}
                             icon={tile.icon}
-                            // Pass isSelected prop to LargeMenuButtonModified
-                            isSelected={selectedButton === tile.label} // Compare the selectedButton with the current tile label
-                            onSelect={() => handleButtonPress(tile.label)} // Set the selected button state
+                            isSelected={selectedButton === tile.label}
+                            onSelect={() => handleButtonPress(tile.label)}
                         />
                     ))}
                 </HStack>
@@ -258,8 +266,30 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                             style={{paddingVertical: 24}}
                         />
 
-                        {/* Custom selection inputs */}
                         <VStack spacing={LeafDimensions.textInputSpacing} style={{width: "100%"}}>
+                            <HStack spacing={10} style={{display: 'flex', alignItems: 'center', width: '100%'}}>
+                                <View style={{flex: 1}}>
+                                    <LeafDateInput
+                                        label={strings("label.fromDate")}
+                                        onChange={(date) => {
+                                            setFromDateFilter(date);
+                                            setIsFromDateValid(date !== undefined);
+                                        }}
+                                        wide={true}
+                                    />
+                                </View>
+                                 <View style={{flex: 1}}>
+                                    <LeafDateInput
+                                        label={strings("label.toDate")}
+                                        onChange={(date) => {
+                                            setToDateFilter(date);
+                                            setIsToDateValid(date !== undefined);
+                                        }}
+                                        initialValue={new Date()}
+                                        wide={true}
+                                    />
+                                </View>
+                            </HStack>
                             <LeafSelectionInputModified
                                 navigation={navigation}
                                 items={HospitalArray.map(hospital => new LeafSelectionItem(hospital.name, hospital.code, hospital))}
@@ -326,6 +356,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                     type={LeafButtonType.Filled}
                     color={LeafColors.accent}
                     onPress={handleExportButtonPress}
+                    disabled={!isFromDateValid || !isToDateValid}
                 />
             </VStack>
             <ExportPopup

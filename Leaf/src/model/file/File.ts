@@ -1,5 +1,7 @@
+import employeeID from "../employee/EmployeeID";
+
 type Filters = {
-    assigned_to?: string;
+    assigned_to?: string | employeeID;
     hospital_site?: string;
     medical_unit?: string;
     sex?: string;

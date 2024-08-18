@@ -28,7 +28,7 @@ export default {
     "tabBar.admin.leaders": "Leaders",
     "tabBar.admin.new": "New",
     "tabBar.admin.export": "Export",
-    "tabBar.admin.fileHistory": "File History",
+    "tabBar.admin.fileHistory": "Reports",
 
     // Leader Tab Bar
     "tabBar.leader.viewNurses": "Nurses",
@@ -52,7 +52,7 @@ export default {
     "header.admin.viewLeaders": "Leaders",
     "header.admin.newAccount": "New Account",
     "header.admin.exportPatient": "Export Patient",
-    "header.admin.fileHistory": "File History",
+    "header.admin.fileHistory": "Reports",
 
     // Leader Headers
     "header.leader.viewNurses": "Nurses",
@@ -98,7 +98,7 @@ export default {
     "button.submit": "Submit",
     "button.addEvent": "Add Event",
     "button.exportPatient": "Export Patient",
-    "button.fileHistory": "File History",
+    "button.fileHistory": "Reports",
     "button.resetPassword": "Forgot Password?",
     "button.reset": "Reset",
     "button.changelog": "Changelog",
@@ -156,10 +156,13 @@ export default {
     "label.removeAccountWarning": "Are you sure you want to remove this account? This action is irreversible.",
     "label.createdAt1Param": "Created {0}",
     "label.noReportSelected": "No report selected",
+    "label.filters": "Filters",
     "label.reportSelected": " selected",
     "label.downloadingFile": "Downloading report...",
     "label.generatingReport": "Generating report...",
     "label.pleaseWait": "Please wait",
+    "label.fromDate": "From date",
+    "label.toDate": "To date",
 
     // Input Labels
     "inputLabel.username": "Username",
@@ -356,4 +359,6 @@ export default {
     "feedback.failDownloadReport": "Error downloading report",
     "feedback.failGenerateReport": "Error generating report",
     "feedback.successGenerateReport": "Report successfully generated",
+
+    "blankspace": " "
 };
