@@ -110,3 +110,17 @@ class PostgresClient:
                 print("Query executed successfully")
         except Exception as e:
             raise DatabaseError("Error executing query", e)
+
+
+    def fetch_data(self, table_name):
+            self.__check_connection()
+            query = f"SELECT * FROM {table_name};"
+            try:
+                with self.connection.cursor() as cursor:
+                    cursor.execute(query)
+                    columns = [desc[0] for desc in cursor.description]
+                    rows = cursor.fetchall()
+                    data = [dict(zip(columns, row)) for row in rows]
+                    return data
+            except Exception as e:
+                raise DatabaseError(f"Error fetching data from {table_name}", e)
