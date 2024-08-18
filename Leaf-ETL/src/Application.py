@@ -43,3 +43,29 @@ def create_app(test_config=None):
         return Response(status=200, mimetype="application/json", response=json.dumps(res))
 
     return app
+
+
+    @app.route('/export/<table_name>', methods=['GET'])
+    def export_csv(table_name):
+        try:
+            # Initialize PostgresClient
+            postgres_client = PostgresClient(dbname="your_db", user="your_user", password="your_password")
+
+            # Connect to the database
+            postgres_client.connect()
+
+            # Create the CSVExporter instance
+            csv_exporter = CSVExporter(postgres_client)
+
+            # Define the path for the CSV file
+            csv_file_path = f"/path/to/export/{table_name}.csv"
+
+            # Export the data to CSV
+            csv_exporter.export_to_csv(table_name, csv_file_path)
+
+            # Send the file as a response to the client
+            return send_file(csv_file_path, as_attachment=True)
+        except Exception as e:
+            return str(e)
+        finally:
+            postgres_client.close()
