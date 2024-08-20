@@ -1,10 +1,12 @@
+import os
+
 from src.clients.FirestoreClient import FirestoreClient
 from src.clients.PostgresClient import PostgresClient
 
 
 class EtlController:
     def __init__(self):
-        self.firestore_client = FirestoreClient("auth/leaf-f184f-firebase-adminsdk-2nh8n-470e3b79de.json")
+        self.firestore_client = FirestoreClient("auth/leaf-f184f-firebase-adminsdk-2nh8n-87f2279075.json")
         self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
 
     def trigger_process(self):
@@ -34,13 +36,17 @@ class EtlController:
 
     def __transform(self):
         self.postgres_client.connect()
+        sql_directory = 'postgres/transformations'
 
-        fd = open('postgres/transformations/1_person.sql', 'r')
-        sqlFile = fd.read()
-        fd.close()
+        for file in sorted(os.listdir(sql_directory)):
+            filename = os.fsdecode(file)
+            if filename.endswith('.sql'):
+                print(f"TRANSFORM: Running {sql_directory}/{filename}")
+                fd = open(sql_directory + '/' + filename, 'r')
+                sqlFile = fd.read()
+                fd.close()
+                sqlCommands = sqlFile.split(';')
 
-        sqlCommands = sqlFile.split(';')
-
-        for command in sqlCommands:
-            if command:
-                self.postgres_client.execute_query(command)
+                for command in sqlCommands:
+                    if command:
+                        self.postgres_client.execute_query(command)
