@@ -7,6 +7,7 @@ import tempfile
 from flask_cors import CORS
 from io import StringIO
 import csv
+from google.oauth2 import service_account
 
 app = Flask(__name__)
 CORS(app)
@@ -25,6 +26,10 @@ def authenticate_drive():
         gauth.Authorize()
 
     gauth.SaveCredentialsFile("mycreds.txt")
+
+    # scope = ['https://www.googleapis.com/auth/drive']
+    # gauth.credentials = service_account.Credentials.from_service_account_file('service_key.json', scopes=scope)
+
     return GoogleDrive(gauth)
 
 
@@ -103,8 +108,7 @@ def upload_csv():
 
 
 # # TEST API
-# authenticate_drive()
-# file_id = '1TdbeTZ4gXDFXqt-OURqYKh11ZKs4MgF1'
+# file_id = '1NKD8O09NjQG3tZ3CgCIrYl0XHZDCuDZe'
 # try:
 #     drive = authenticate_drive()
 #
@@ -128,7 +132,7 @@ def upload_csv():
 #     print("SUCCESS")
 #
 # except Exception as e:
-#     print(jsonify({"error": str(e)}), 500)
+#     print(str(e))
 
 if __name__ == '__main__':
     app.run(debug=True)

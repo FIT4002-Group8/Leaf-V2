@@ -124,7 +124,7 @@ export default {
     "label.loading": "Loading",
     "label.details": "Details",
     "label.viewPatient": "View patient information and medical history.",
-    "label.fullReport": "Generate a report with all the patient data (OMOP CDM).",
+    "label.fullReport": "Generate a report with all the patient data.",
     "label.quickReport": "Generate a summarised report of the patient data.",
     "label.customReport": "Generate a customised report of the patient data.",
     "label.patientActions": "View immediate actions relevant to triage.",
