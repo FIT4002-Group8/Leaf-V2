@@ -1,7 +1,10 @@
 import employeeID from "../employee/EmployeeID";
+import {FileFilters} from "./FileFilters";
 
 type Filters = {
-    assigned_to?: string | employeeID;
+    assigned_to?: string;
+    from_date?: Date;
+    to_date?: Date;
     hospital_site?: string;
     medical_unit?: string;
     sex?: string;
@@ -17,7 +20,7 @@ class File {
     protected _reportType: string;
     protected _password: string;
     protected _created: Date;
-    protected _filters: Filters = {};
+    protected _filters: FileFilters = {};
 
     public get title(): string {
         return this._title;
@@ -39,7 +42,7 @@ class File {
         return this._created;
     }
 
-    public get filters(): Filters {
+    public get filters(): FileFilters {
         return this._filters;
     }
 
@@ -54,7 +57,7 @@ class File {
         reportType: string,
         password: string,
         created: Date,
-        filters: Filters
+        filters: FileFilters
     ) {
         this.id = id;
         this._title = title;
@@ -85,7 +88,7 @@ class File {
         this._password = password;
     }
 
-    public setFilters(filters: Filters) {
+    public setFilters(filters: FileFilters) {
         this._filters = filters;
     }
 }
