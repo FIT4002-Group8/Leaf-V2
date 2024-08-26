@@ -55,7 +55,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
     const [isPopupVisible, setPopupVisible] = useState(false);
     const [fromDateFilter, setFromDateFilter] = useState<Date | undefined>();
-    const [toDateFilter, setToDateFilter] = useState<Date | undefined>();
+    const [toDateFilter, setToDateFilter] = useState<Date | undefined>(new Date());
     const [isFromDateValid, setIsFromDateValid] = useState(true);
     const [isToDateValid, setIsToDateValid] = useState(true);
 
@@ -106,16 +106,17 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
 
     // Function to handle custom tile selection
     const handleCustomTileSelection = () => {
-        if (isCustomTileSelected) {
-            setSelectedHospital(undefined);
-            setSelectedWard(undefined);
-            setSelectedMedicalUnit(undefined);
-            setAssignedTo(undefined);
-            setSelectedSexes([]);
-            setTriageCode(undefined);
-            setFromDateFilter(undefined)
-            setToDateFilter(undefined)
-        }
+        setFromDateFilter(undefined)
+        setIsFromDateValid(true)
+        setToDateFilter(new Date())
+        setIsToDateValid(true)
+        setSelectedHospital(undefined);
+        setSelectedWard(undefined);
+        setSelectedMedicalUnit(undefined);
+        setAssignedTo(undefined);
+        setSelectedSexes([]);
+        setTriageCode(undefined);
+        setFromDateFilter(undefined)
         setIsCustomTileSelected(!isCustomTileSelected);
     };
 
@@ -278,7 +279,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                                         wide={true}
                                     />
                                 </View>
-                                 <View style={{flex: 1}}>
+                                <View style={{flex: 1}}>
                                     <LeafDateInput
                                         label={strings("label.toDate")}
                                         onChange={(date) => {
@@ -356,7 +357,9 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                     type={LeafButtonType.Filled}
                     color={LeafColors.accent}
                     onPress={handleExportButtonPress}
-                    disabled={!isFromDateValid || !isToDateValid}
+                    disabled={isCustomTileSelected ?
+                        !isFromDateValid || !isToDateValid : false
+                    }
                 />
             </VStack>
             <ExportPopup
