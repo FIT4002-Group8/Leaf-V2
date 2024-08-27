@@ -437,3 +437,8 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows,linux,xcode,androidstudio,reactnative
+csv-get/client_secret.json
+
+csv-get/mycreds.txt
+
+csv-get/service_key.json

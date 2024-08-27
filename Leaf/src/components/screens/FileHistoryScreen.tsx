@@ -1,61 +1,145 @@
-// FileHistoryScreen.tsx
-
-import React, { useState } from "react";
-import { FlatList, ScrollView } from "react-native";
-import { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { strings } from "../../localisation/Strings";
+import React, {useEffect, useState} from "react";
+import {FlatList, ScrollView, View} from "react-native";
+import {NavigationProp, ParamListBase} from "@react-navigation/native";
+import {strings} from "../../localisation/Strings";
 import DefaultScreenContainer from "./containers/DefaultScreenContainer";
 import LeafText from "../base/LeafText/LeafText";
 import VStack from "../containers/VStack";
 import VGap from "../containers/layout/VGap";
 import HStack from "../containers/HStack";
 import LeafButton from "../base/LeafButton/LeafButton";
-import { LeafButtonType } from "../base/LeafButton/LeafButtonType";
+import {LeafButtonType} from "../base/LeafButton/LeafButtonType";
 import LeafColors from "../styling/LeafColors";
 import LeafDimensions from "../styling/LeafDimensions";
 import LeafTypography from "../styling/LeafTypography";
-import { useNotificationSession } from "../base/LeafDropNotification/NotificationSession";
-import reports, { Report } from "../../preset_data/ReportData";
+import {useNotificationSession} from "../base/LeafDropNotification/NotificationSession";
 import ExportReportCard from "../custom/ExportReportCard";
 import FormHeader from "../custom/FormHeader";
+import axios from 'axios';
+import Session from "../../model/session/Session";
+import StateManager from "../../state/publishers/StateManager";
+import File from "../../model/file/File";
+import LeafDateInput from "../base/LeafDateInput/LeafDateInput";
+import LeafReportSearchBar from "../base/LeafSearchBar/LeafReportSearchBar";
 
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
 }
 
-const FileHistoryScreen: React.FC<Props> = ({ navigation }) => {
-    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-    const [selectAll, setSelectAll] = useState(false);
+const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
+    const [selectedReport, setSelectedReport] = useState<File | null>(null);
     const [notify, setNotify] = useState(false);
-    const { showErrorNotification, showSuccessNotification } = useNotificationSession();
+    const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
+    const [files, setFiles] = useState<File[]>([]);
 
-    const notifyHandler = () => {
-        if (!selectedReport) {
-            setNotify(true);
-            showErrorNotification(strings("label.noReportSelected"));
-        } else {
-            showSuccessNotification(strings("feedback.successDownloadReport"));
-        }
-    };
+    // Filter states
+    const [titleFilter, setTitleFilter] = useState<string>("");
+    const [fromDateFilter, setFromDateFilter] = useState<Date | undefined>();
+    const [toDateFilter, setToDateFilter] = useState<Date | undefined>(new Date());
+    const [dateError, setDateError] = useState<string | null>(null);
 
-    const toggleReportSelect = (report: Report) => {
+    useEffect(() => {
+        const unsubscribeFiles = StateManager.filesFetched.subscribe(() => {
+            setFiles(Session.inst.getAllFiles());
+        });
+
+        // Fetch files initially
+        Session.inst.fetchAllFiles();
+
+        // Cleanup subscription on unmount
+        return () => {
+            unsubscribeFiles();
+        };
+    }, []);
+
+    const toggleReportSelect = (report: File) => {
         setNotify(false);
-        if (selectedReport && selectedReport.name === report.name) {
+        if (selectedReport && selectedReport.title === report.title) {
             setSelectedReport(null);
         } else {
             setSelectedReport(report);
         }
     };
 
-    const toggleSelectAll = () => {
-        setNotify(false);
-        if (selectAll) {
-            setSelectedReport(null);
+    const exportReport = async () => {
+        showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download');
+        if (selectedReport) {
+            const file_id: string = selectedReport.id;
+            const title: string = selectedReport.title;
+            const report_name: string = selectedReport.title;
+            const password: string = selectedReport.password;
+
+            try {
+                const response = await axios.get('http://127.0.0.1:5000/download-zip', {
+                    params: {file_id: file_id, file_title: title, password: password},
+                    responseType: 'blob',
+                });
+
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${report_name}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                showSuccessNotification(strings("feedback.successDownloadReport"));
+            } catch (error) {
+                console.error('Error downloading the file', error);
+                showErrorNotification(strings("feedback.failDownloadReport"));
+            }
         } else {
-            setSelectedReport(reports.length > 0 ? reports[0] : null);
+            setNotify(true);
+            showErrorNotification(strings("label.noReportSelected"));
         }
-        setSelectAll(!selectAll);
     };
+
+    // Define the interface for the grouped reports
+    interface GroupedReports {
+        monthYear: string;
+        reports: File[];
+    }
+
+    const groupReportsByMonth = (reports: File[]): GroupedReports[] => {
+        const groupedReports: GroupedReports[] = [];
+        reports
+            .slice()
+            .sort((a, b) => b.created.getTime() - a.created.getTime())
+            .forEach(report => {
+                const monthYear = report.created.toLocaleString('default', {month: 'long', year: 'numeric'});
+                const existingGroupIndex = groupedReports.findIndex(group => group.monthYear === monthYear);
+                if (existingGroupIndex !== -1) {
+                    groupedReports[existingGroupIndex].reports.push(report);
+                } else {
+                    groupedReports.push({monthYear: monthYear, reports: [report]});
+                }
+            });
+        return groupedReports;
+    };
+
+    const applyFilters = (reports: File[]): File[] => {
+        if (dateError) {
+            return [];
+        }
+        return reports.filter(report => {
+            const matchesTitle = titleFilter === "" || report.title.toLowerCase().includes(titleFilter.toLowerCase());
+            const matchesFromDate = !fromDateFilter || report.created >= fromDateFilter;
+            const matchesToDate = !toDateFilter || report.created <= toDateFilter;
+            return matchesTitle && matchesFromDate && matchesToDate;
+        });
+    };
+
+    // Validate dates
+    useEffect(() => {
+        if (fromDateFilter && toDateFilter && fromDateFilter > toDateFilter) {
+            setDateError("From date cannot be after the To date.");
+        } else {
+            setDateError(null);
+        }
+    }, [fromDateFilter, toDateFilter]);
+
+    const filteredReports = applyFilters(files);
+    const groupedReports = groupReportsByMonth(filteredReports);
 
     return (
         <DefaultScreenContainer>
@@ -67,10 +151,42 @@ const FileHistoryScreen: React.FC<Props> = ({ navigation }) => {
                     type={LeafButtonType.Filled}
                     color={LeafColors.accent}
                     onPress={async () => {
-                        notifyHandler();
+                        exportReport();
                         console.log("Downloading report: ", selectedReport);
                     }}
                 />
+                {/* Filters */}
+                <HStack spacing={8} style={{display: 'flex', alignItems: 'center', width: '100%'}}>
+                    <View style={{flex: 3}}>
+                        <LeafReportSearchBar
+                            label={strings("search.underlying")}
+                            // value={titleFilter}
+                            onTextChange={setTitleFilter}
+                            data={[]}
+                            setData={() => {
+                            }}
+                            dataToString={(item) => item}
+                            style={{flex: 3}}
+                        />
+                    </View>
+                    <View style={{flex: 1}}>
+                        <LeafDateInput
+                            label={strings("label.fromDate")}
+                            onChange={(date) => {
+                                setFromDateFilter(date);
+                            }}
+                        />
+                    </View>
+                    <View style={{flex: 1, minWidth: '150px'}}>
+                        <LeafDateInput
+                            label={strings("label.toDate")}
+                            initialValue={new Date()}
+                            onChange={(date) => {
+                                setToDateFilter(date);
+                            }}
+                        />
+                    </View>
+                </HStack>
                 <HStack
                     spacing={16}
                     style={{
@@ -86,32 +202,28 @@ const FileHistoryScreen: React.FC<Props> = ({ navigation }) => {
                     >
                         {selectedReport === null
                             ? strings("label.noReportSelected")
-                            : strings("label.reportSelected")}
+                            : selectedReport.title + strings("label.reportSelected")}
                     </LeafText>
                 </HStack>
             </VStack>
 
-            <VGap size={12} />
-
+            <VGap size={12}/>
             <VStack>
-                <ScrollView style={{ flex: 1, width: "100%" }}>
-                    {/* Iterate over reports grouped by month and render */}
+                <ScrollView style={{flex: 1, width: "100%"}}>
                     {groupedReports.map((group, index) => (
                         <VStack key={index}>
-                            <FormHeader
-                                title={group.monthYear}
-                            />
+                            <FormHeader title={group.monthYear}/>
                             <FlatList
                                 data={group.reports}
-                                renderItem={({ item: report }) => (
+                                renderItem={({item: report}) => (
                                     <ExportReportCard
                                         report={report}
-                                        isSelected={selectedReport?.name === report.name}
+                                        isSelected={selectedReport?.title === report.title}
                                         onPress={() => toggleReportSelect(report)}
                                     />
                                 )}
-                                keyExtractor={(report) => report.name}
-                                ItemSeparatorComponent={() => <VGap size={LeafDimensions.cardSpacing} />}
+                                keyExtractor={(report) => report.id}
+                                ItemSeparatorComponent={() => <VGap size={LeafDimensions.cardSpacing}/>}
                                 scrollEnabled={false}
                                 style={{
                                     width: "100%",
@@ -128,30 +240,3 @@ const FileHistoryScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 export default FileHistoryScreen;
-
-// Define the interface for the grouped reports
-interface GroupedReports {
-    monthYear: string;
-    reports: Report[];
-}
-
-// Group reports by month and sort the reports within each group by date
-const groupedReports: GroupedReports[] = [];
-reports
-    .slice() // Create a copy of reports array to avoid modifying the original array
-    .sort((a, b) => b.date.getTime() - a.date.getTime()) // Sort reports by date in descending order
-    .forEach(report => {
-        const monthYear = report.date.toLocaleString('default', { month: 'long', year: 'numeric' });
-        const existingGroupIndex = groupedReports.findIndex(group => group.monthYear === monthYear);
-        if (existingGroupIndex !== -1) {
-            groupedReports[existingGroupIndex].reports.push(report);
-        } else {
-            // Create a new group and add the report to it
-            groupedReports.push({ monthYear: monthYear, reports: [report] });
-        }
-    });
-
-// Sort the reports within each group by date in descending order
-groupedReports.forEach(group => {
-    group.reports.sort((a, b) => b.date.getTime() - a.date.getTime());
-});

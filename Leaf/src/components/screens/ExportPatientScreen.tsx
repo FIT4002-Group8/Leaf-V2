@@ -1,16 +1,16 @@
-import { NavigationProp, ParamListBase } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
-import { strings } from "../../localisation/Strings";
+import {NavigationProp, ParamListBase} from "@react-navigation/native";
+import {View} from "react-native";
+import React, {useEffect, useState} from "react";
+import {strings} from "../../localisation/Strings";
 import Session from "../../model/session/Session";
 import StateManager from "../../state/publishers/StateManager";
 import DefaultScreenContainer from "./containers/DefaultScreenContainer";
 import LeafButton from "../base/LeafButton/LeafButton";
-import { LeafButtonType } from "../base/LeafButton/LeafButtonType";
+import {LeafButtonType} from "../base/LeafButton/LeafButtonType";
 import LeafTypography from "../styling/LeafTypography";
 import LeafColors from "../styling/LeafColors";
 import LeafDimensions from "../styling/LeafDimensions";
 import LargeMenuButtonModified from "../custom/LargeMenuButtonModified";
-import NavigationSession from "../navigation/state/NavigationEnvironment";
 import VGap from "../containers/layout/VGap";
 import HStack from "../containers/HStack";
 import VStack from "../containers/VStack";
@@ -20,18 +20,24 @@ import Hospital from "../../model/hospital/Hospital";
 import Ward from "../../model/hospital/Ward";
 import MedicalUnit from "../../model/hospital/MedicalUnit";
 import Worker from "../../model/employee/Worker";
-import { HospitalArray } from "../../preset_data/Hospitals";
-import { PatientSex } from "../../model/patient/PatientSex";
-import { TriageCode } from "../../model/triage/TriageCode";
+import {HospitalArray} from "../../preset_data/Hospitals";
+import {PatientSex} from "../../model/patient/PatientSex";
+import {TriageCode} from "../../model/triage/TriageCode";
 import LeafSelectionInputModified from "../base/LeafListSelection/LeafSelectionInputModified";
 import TriageCodePickerModified from "../custom/TriageCodePickerModified";
 import SexPicker from "../custom/SexPickerModified";
+import axios from "axios";
+import File from "../../model/file/File";
+import {FileFilters} from "../../model/file/FileFilters";
+import {useNotificationSession} from "../base/LeafDropNotification/NotificationSession";
+import ExportPopup from "../custom/ExportPopup";
+import LeafDateInput from "../base/LeafDateInput/LeafDateInput";
 
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
 }
 
-const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
+const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const [componentWidth, setComponentWidth] = useState(StateManager.contentWidth.read());
     const [selectedHospital, setSelectedHospital] = useState<LeafSelectionItem<Hospital> | undefined>();
     const [selectedWard, setSelectedWard] = useState<LeafSelectionItem<Ward> | undefined>();
@@ -45,6 +51,27 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
     const [triageCode, setTriageCode] = useState<TriageCode | undefined>(activePatient?.triageCase?.triageCode);
     const [selectedReportType, setSelectedReportType] = useState<string | undefined>();
     const [selectedButton, setSelectedButton] = useState<string | null>(null);
+    const user = Session.inst.loggedInAccount;
+    const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
+    const [isPopupVisible, setPopupVisible] = useState(false);
+    const [fromDateFilter, setFromDateFilter] = useState<Date | undefined>();
+    const [toDateFilter, setToDateFilter] = useState<Date | undefined>(new Date());
+    const [isFromDateValid, setIsFromDateValid] = useState(true);
+    const [isToDateValid, setIsToDateValid] = useState(true);
+
+    const handleExportButtonPress = () => {
+        if (selectedButton) {
+            setPopupVisible(true);
+        } else {
+            showErrorNotification(strings("label.noReportSelected"));
+        }
+    }
+
+    // Function to handle export from the popup
+    const handleExport = async (title: string, password: string) => {
+        // Call generateReport with title and password
+        await generateReport(title, password);
+    };
 
     // Effect to handle fetching and updating workers data
     useEffect(() => {
@@ -53,9 +80,10 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
             setFilteredWorkers(Session.inst.getAllWorkers());
         });
 
+        setComponentWidth(window.innerWidth - 264);
+
         // Fetch all workers when the component is mounted
         Session.inst.fetchAllWorkers();
-
         // Cleanup: Unsubscribe from workersFetched event when the component is unmounted
         return () => {
             unsubscribeWorkers();
@@ -78,14 +106,17 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
 
     // Function to handle custom tile selection
     const handleCustomTileSelection = () => {
-        if (isCustomTileSelected) {
-            setSelectedHospital(undefined);
-            setSelectedWard(undefined);
-            setSelectedMedicalUnit(undefined);
-            setAssignedTo(undefined);
-            setSelectedSexes([]);
-            setTriageCode(undefined);
-        }
+        setFromDateFilter(undefined)
+        setIsFromDateValid(true)
+        setToDateFilter(new Date())
+        setIsToDateValid(true)
+        setSelectedHospital(undefined);
+        setSelectedWard(undefined);
+        setSelectedMedicalUnit(undefined);
+        setAssignedTo(undefined);
+        setSelectedSexes([]);
+        setTriageCode(undefined);
+        setFromDateFilter(undefined)
         setIsCustomTileSelected(!isCustomTileSelected);
     };
 
@@ -109,7 +140,6 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
 
         if (reportType === "Custom Report") {
             setIsCustomTileSelected(true);
-            console.log(`Here: ${reportType}`);
         } else {
             setIsCustomTileSelected(false);
         }
@@ -132,9 +162,60 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
         }
     };
 
+    const generateReport = async (title: string, password: string) => {
+        if (selectedReportType && selectedButton) {
+            showDefaultNotification(strings("label.pleaseWait"), strings("label.generatingReport"), 'progress-download')
+            try {
+                // Create file properties
+                const author: string = user.fullName;
+                const report_type: string = selectedReportType;
+                const created: Date = new Date();
+
+                // TODO - Create filters object
+                const filters: FileFilters = {
+                    from_date: null,
+                    to_date: null,
+                    assigned_to: "",
+                    hospital_site: "",
+                    medical_unit: "",
+                    sex: "",
+                    triage_code: [], // Adjust according to TriageCode structure
+                    ward: "",
+                };
+                // Make the GET request to the Flask endpoint
+                const csv_file_id = await axios.get('http://127.0.0.1:5000/upload-csv', {
+                    params: {title: title},
+                });
+
+                // Generate or fetch file_id
+                const file_id: string = csv_file_id.data["id"];
+                console.log(csv_file_id.data["id"]);
+
+                // Create File object
+                const file = new File(
+                    file_id,
+                    title,
+                    author,
+                    report_type,
+                    password,
+                    created,
+                    filters
+                );
+                // Set file in session or save to DB
+                await Session.inst.submitNewFile(file);
+                showSuccessNotification(strings("feedback.successGenerateReport"));
+            } catch (error) {
+                console.error('Error generating the report', error);
+                showErrorNotification(strings("feedback.failGenerateReport"));
+            }
+        } else {
+            showErrorNotification(strings("label.noReportSelected"));
+        }
+    };
+
     return (
         <DefaultScreenContainer>
-            <VStack spacing={LeafDimensions.screenSpacing} style={{ flex: 1 }}>
+            <VStack spacing={LeafDimensions.screenSpacing} style={{flex: 1}}>
                 <HStack
                     spacing={buttonSpacing}
                     style={{
@@ -173,22 +254,43 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
                             description={tile.description}
                             onPress={tile.onPress}
                             icon={tile.icon}
-                            // Pass isSelected prop to LargeMenuButtonModified
-                            isSelected={selectedButton === tile.label} // Compare the selectedButton with the current tile label
-                            onSelect={() => handleButtonPress(tile.label)} // Set the selected button state
+                            isSelected={selectedButton === tile.label}
+                            onSelect={() => handleButtonPress(tile.label)}
                         />
                     ))}
                 </HStack>
 
                 {isCustomTileSelected && (
-                    <VStack spacing={LeafDimensions.textInputSpacing} style={{ width: "100%" }}>
+                    <VStack spacing={LeafDimensions.textInputSpacing} style={{width: "100%"}}>
                         <FormHeader
                             title={strings("triageForm.title.reportFilter")}
-                            style={{ paddingVertical: 24 }}
+                            style={{paddingVertical: 24}}
                         />
 
-                        {/* Custom selection inputs */}
-                        <VStack spacing={LeafDimensions.textInputSpacing} style={{ width: "100%" }}>
+                        <VStack spacing={LeafDimensions.textInputSpacing} style={{width: "100%"}}>
+                            <HStack spacing={10} style={{display: 'flex', alignItems: 'center', width: '100%'}}>
+                                <View style={{flex: 1}}>
+                                    <LeafDateInput
+                                        label={strings("label.fromDate")}
+                                        onChange={(date) => {
+                                            setFromDateFilter(date);
+                                            setIsFromDateValid(date !== undefined);
+                                        }}
+                                        wide={true}
+                                    />
+                                </View>
+                                <View style={{flex: 1}}>
+                                    <LeafDateInput
+                                        label={strings("label.toDate")}
+                                        onChange={(date) => {
+                                            setToDateFilter(date);
+                                            setIsToDateValid(date !== undefined);
+                                        }}
+                                        initialValue={new Date()}
+                                        wide={true}
+                                    />
+                                </View>
+                            </HStack>
                             <LeafSelectionInputModified
                                 navigation={navigation}
                                 items={HospitalArray.map(hospital => new LeafSelectionItem(hospital.name, hospital.code, hospital))}
@@ -232,13 +334,13 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
                             />
 
                             <SexPicker
-                                style={{ paddingBottom: 8 }}
+                                style={{paddingBottom: 8}}
                                 onSelection={handleSexSelection}
                                 initialValue={selectedSexes}
                             />
 
                             <TriageCodePickerModified
-                                style={{ paddingBottom: 8 }}
+                                style={{paddingBottom: 8}}
                                 onSelection={codes => setTriageCode(codes.length > 0 ? codes[0] : undefined)}
                                 initialValue={triageCode ? [triageCode] : undefined}
                             />
@@ -247,19 +349,24 @@ const ExportPatientScreen: React.FC<Props> = ({ navigation }) => {
                 )}
 
                 {/* Add the export button at the bottom */}
-                <VGap size={12} />
+                <VGap size={12}/>
                 <LeafButton
                     label="Export"
                     icon="file-export"
                     typography={LeafTypography.button}
                     type={LeafButtonType.Filled}
                     color={LeafColors.accent}
-                    onPress={async () => {
-                        // TODO - Handle export logic
-                        // await exportPatient(selectedPatients);
-                    }}
+                    onPress={handleExportButtonPress}
+                    disabled={isCustomTileSelected ?
+                        !isFromDateValid || !isToDateValid : false
+                    }
                 />
             </VStack>
+            <ExportPopup
+                isVisible={isPopupVisible}
+                onClose={() => setPopupVisible(false)}
+                onExport={handleExport}
+            />
         </DefaultScreenContainer>
     );
 };
