@@ -3,6 +3,7 @@ import os
 from src.clients.FirestoreClient import FirestoreClient
 from src.clients.PostgresClient import PostgresClient
 from src.clients.GDriveClient import GDriveClient
+from src.utils import FileUtils
 
 
 class EtlController:
@@ -19,6 +20,10 @@ class EtlController:
         print("Beginning TRANSFORM Stage")
         self.__transform()
         print("TRANSFORM Stage Completed")
+
+        print("Beginning LOAD Stage")
+        self.__load()
+        print("LOAD Stage Completed")
 
     def __extract(self):
         # Connect to Postgres & reset the tables
@@ -52,3 +57,18 @@ class EtlController:
                 for command in sqlCommands:
                     if command:
                         self.postgres_client.execute_query(command)
+
+        self.postgres_client.close()
+
+    def __load(self):
+        print("Generating CSV's")
+        FileUtils.convertOmopTablesToCsv(self.postgres_client)
+        print("Successfully generated CSV's")
+
+        print("Zipping output report")
+        FileUtils.createZippedOmopReport('omop-report')
+        print("Zipped output report")
+
+        print("Uploading zipped report to Google Drive")
+        self.gdrive_client.uploadFile('omop-report.zip')
+        print("Uploaded file to Google Drive")

@@ -1,3 +1,6 @@
+import csv
+import os
+
 import psycopg2
 
 from src.exceptions.DatabaseError import DatabaseError
@@ -97,6 +100,37 @@ class PostgresClient:
         query = query[:-2] + ";"
 
         self.execute_query(query)
+
+    def read_table_into_csv(self, table_name, directory):
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+            print(f"Created {directory} path for OMOP CSV's")
+
+        data, column_names = self.read_table(table_name)
+
+        if data:
+            # Write data to CSV
+            with open(directory + table_name + '.csv', mode='w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(column_names)  # Write headers
+                writer.writerows(data)  # Write data rows
+
+            print(f"Data from {table_name} has been written to {directory + table_name + '.csv'}")
+        else:
+            print(f"No data found in table {table_name}")
+
+    def read_table(self, table_name):
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(f"""SELECT * FROM {table_name}""")
+                data = []
+                for row in cursor.fetchall():
+                    data.append(row)
+                column_names = [desc[0] for desc in cursor.description]
+        except Exception as e:
+            raise DatabaseError("Error reading table", e)
+
+        return data, column_names
 
     def execute_query(self, query):
         try:
