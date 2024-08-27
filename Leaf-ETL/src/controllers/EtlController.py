@@ -2,12 +2,14 @@ import os
 
 from src.clients.FirestoreClient import FirestoreClient
 from src.clients.PostgresClient import PostgresClient
+from src.clients.GDriveClient import GDriveClient
 
 
 class EtlController:
     def __init__(self):
         self.firestore_client = FirestoreClient("auth/leaf-f184f-firebase-adminsdk-2nh8n-87f2279075.json")
         self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
+        self.gdrive_client = GDriveClient("auth/service_account_secret.json")
 
     def trigger_process(self):
         print("Beginning EXTRACT Stage")
