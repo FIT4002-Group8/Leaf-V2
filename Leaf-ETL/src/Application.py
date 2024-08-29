@@ -1,7 +1,8 @@
 import json
 import os
 
-from flask import Flask, Response, request
+from flask import Flask, Response, request, send_file
+from flask_cors import CORS
 
 from src.controllers.EtlController import EtlController
 from src.exceptions.DatabaseError import DatabaseError
@@ -12,6 +13,7 @@ etl_controller = EtlController()
 def create_app(test_config=None):
     # Create and configure the application
     app = Flask(__name__, instance_relative_config=True)
+    CORS(app)
     app.config.from_mapping(
         SECRET_KEY='dev',
     )
@@ -43,5 +45,18 @@ def create_app(test_config=None):
 
         res = {"message": "Successfully completed ETL process", "fileId": fileId}
         return Response(status=200, mimetype="application/json", response=json.dumps(res))
+
+    @app.route('/download', methods=['GET'])
+    def download():
+        file_title = request.args.get('file_title') + '.zip'
+
+        try:
+            etl_controller.gdrive_client.downloadFile(file_title)
+        except Exception as e:
+            print(e)
+            res = {"error": "Error while downloading report from Google Drive"}
+            return Response(status=400, mimetype="application/json", response=json.dumps(res))
+
+        return send_file(f"../{file_title}", as_attachment=True, download_name=file_title)
 
     return app
