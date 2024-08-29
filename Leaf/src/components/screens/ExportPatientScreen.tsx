@@ -183,13 +183,13 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                     ward: "",
                 };
                 // Make the GET request to the Flask endpoint
-                const csv_file_id = await axios.get('http://127.0.0.1:5000/upload-csv', {
+                const zip_file_id = await axios.get('http://127.0.0.1:5000/trigger', {
                     params: {title: title},
                 });
 
                 // Generate or fetch file_id
-                const file_id: string = csv_file_id.data["id"];
-                console.log(csv_file_id.data["id"]);
+                const file_id: string = zip_file_id.data["fileId"];
+                console.log(file_id);
 
                 // Create File object
                 const file = new File(

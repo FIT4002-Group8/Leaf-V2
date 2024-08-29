@@ -12,18 +12,20 @@ class EtlController:
         self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
         self.gdrive_client = GDriveClient("auth/service_account_secret.json")
 
-    def trigger_process(self):
-        print("Beginning EXTRACT Stage")
-        self.__extract()
-        print("EXTRACT Stage Completed")
-
-        print("Beginning TRANSFORM Stage")
-        self.__transform()
-        print("TRANSFORM Stage Completed")
+    def trigger_process(self, report_name):
+        # print("Beginning EXTRACT Stage")
+        # self.__extract()
+        # print("EXTRACT Stage Completed")
+        #
+        # print("Beginning TRANSFORM Stage")
+        # self.__transform()
+        # print("TRANSFORM Stage Completed")
 
         print("Beginning LOAD Stage")
-        self.__load()
+        fileId = self.__load(report_name)
         print("LOAD Stage Completed")
+
+        return fileId
 
     def __extract(self):
         # Connect to Postgres & reset the tables
@@ -60,15 +62,17 @@ class EtlController:
 
         self.postgres_client.close()
 
-    def __load(self):
+    def __load(self, report_name):
         print("Generating CSV's")
-        FileUtils.convertOmopTablesToCsv(self.postgres_client)
+        FileUtils.convertOmopTablesToCsv(self.postgres_client, report_name)
         print("Successfully generated CSV's")
 
         print("Zipping output report")
-        FileUtils.createZippedOmopReport('omop-report')
+        FileUtils.createZippedOmopReport(report_name)
         print("Zipped output report")
 
         print("Uploading zipped report to Google Drive")
-        self.gdrive_client.uploadFile('omop-report.zip')
+        fileId = self.gdrive_client.uploadFile(f'{report_name}.zip')
         print("Uploaded file to Google Drive")
+
+        return fileId

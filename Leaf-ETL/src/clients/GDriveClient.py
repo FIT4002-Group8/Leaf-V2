@@ -41,3 +41,4 @@ class GDriveClient:
         media = MediaFileUpload(file_name, mimetype="text/csv")
         file = self.client.files().create(body=file_metadata, media_body=media, fields="id").execute()
         print(f'File ID: {file.get("id")}')
+        return file.get("id")

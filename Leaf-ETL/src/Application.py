@@ -1,7 +1,7 @@
 import json
 import os
 
-from flask import Flask, Response
+from flask import Flask, Response, request
 
 from src.controllers.EtlController import EtlController
 from src.exceptions.DatabaseError import DatabaseError
@@ -30,16 +30,18 @@ def create_app(test_config=None):
         pass
 
     # Create a sample route for testing
-    @app.route('/trigger')
+    @app.route('/trigger', methods=['GET'])
     def trigger():
+        report_name = request.args.get('title')
+
         try:
-            etl_controller.trigger_process()
+            fileId = etl_controller.trigger_process(report_name)
         except DatabaseError as e:
             print(e)
             res = {"error": "Error while accessing database"}
             return Response(status=400, mimetype="application/json", response=json.dumps(res))
 
-        res = {"message": "Successfully completed ETL process"}
+        res = {"message": "Successfully completed ETL process", "fileId": fileId}
         return Response(status=200, mimetype="application/json", response=json.dumps(res))
 
     return app
