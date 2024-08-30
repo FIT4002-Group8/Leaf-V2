@@ -32,6 +32,8 @@ import {FileFilters} from "../../model/file/FileFilters";
 import {useNotificationSession} from "../base/LeafDropNotification/NotificationSession";
 import ExportPopup from "../custom/ExportPopup";
 import LeafDateInput from "../base/LeafDateInput/LeafDateInput";
+import {exportPatient} from "../../utils/ExportPatientUtil";
+import Patient from "../../model/patient/Patient";
 
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
@@ -58,6 +60,21 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const [toDateFilter, setToDateFilter] = useState<Date | undefined>(new Date());
     const [isFromDateValid, setIsFromDateValid] = useState(true);
     const [isToDateValid, setIsToDateValid] = useState(true);
+    const [patients, setPatients] = useState<Patient[]>(Session.inst.getAllPatients());
+
+    useEffect(() => {
+        const unsubscribePatients = StateManager.patientsFetched.subscribe(() => {
+            setPatients(Session.inst.getAllPatients());
+        });
+
+        // Fetch all patients when the component is mounted
+        Session.inst.fetchAllPatients();
+
+        // Cleanup: Unsubscribe from patientsFetched event when the component is unmounted
+        return () => {
+            unsubscribePatients();
+        };
+    }, []);
 
     const handleExportButtonPress = () => {
         if (selectedButton) {
@@ -79,7 +96,6 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
             setWorkers(Session.inst.getAllWorkers());
             setFilteredWorkers(Session.inst.getAllWorkers());
         });
-
         setComponentWidth(window.innerWidth - 264);
 
         // Fetch all workers when the component is mounted
@@ -165,46 +181,69 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const generateReport = async (title: string, password: string) => {
         if (selectedReportType && selectedButton) {
             showDefaultNotification(strings("label.pleaseWait"), strings("label.generatingReport"), 'progress-download')
+
+            // TODO - Create filters object
+            const filters: FileFilters = {
+                from_date: null,
+                to_date: null,
+                assigned_to: "",
+                hospital_site: "",
+                medical_unit: "",
+                sex: "",
+                triage_code: [], // Adjust according to TriageCode structure
+                ward: "",
+            };
+
             try {
                 // Create file properties
                 const author: string = user.fullName;
                 const report_type: string = selectedReportType;
                 const created: Date = new Date();
 
-                // TODO - Create filters object
-                const filters: FileFilters = {
-                    from_date: null,
-                    to_date: null,
-                    assigned_to: "",
-                    hospital_site: "",
-                    medical_unit: "",
-                    sex: "",
-                    triage_code: [], // Adjust according to TriageCode structure
-                    ward: "",
-                };
-                // Make the GET request to the Flask endpoint
-                const zip_file_id = await axios.get('http://127.0.0.1:5000/trigger', {
-                    params: {title: title},
-                });
+                if (selectedReportType === "Quick Report") {
+                    console.log(patients);
+                    const zip_file_id = await exportPatient(patients, title);
 
-                // Generate or fetch file_id
-                const file_id: string = zip_file_id.data["fileId"];
-                console.log(file_id);
+                    const file = new File(
+                        zip_file_id["fileId"],
+                        title,
+                        author,
+                        report_type,
+                        password,
+                        created,
+                        filters
+                    );
+                    // Set file in session or save to DB
+                    await Session.inst.submitNewFile(file);
 
-                // Create File object
-                const file = new File(
-                    file_id,
-                    title,
-                    author,
-                    report_type,
-                    password,
-                    created,
-                    filters
-                );
-                // Set file in session or save to DB
-                await Session.inst.submitNewFile(file);
-                showSuccessNotification(strings("feedback.successGenerateReport"));
-            } catch (error) {
+
+                    showSuccessNotification(strings("feedback.successGenerateReport"));
+                } else {
+                    // Make the GET request to the Flask endpoint
+                    const zip_file_id = await axios.get('http://127.0.0.1:5000/trigger', {
+                        params: {title: title},
+                    });
+
+                    // Generate or fetch file_id
+                    const file_id: string = zip_file_id.data["fileId"];
+                    console.log(file_id);
+
+                    // Create File object
+                    const file = new File(
+                        file_id,
+                        title,
+                        author,
+                        report_type,
+                        password,
+                        created,
+                        filters
+                    );
+                    // Set file in session or save to DB
+                    await Session.inst.submitNewFile(file);
+                    showSuccessNotification(strings("feedback.successGenerateReport"));
+                }
+            } catch
+                (error) {
                 console.error('Error generating the report', error);
                 showErrorNotification(strings("feedback.failGenerateReport"));
             }

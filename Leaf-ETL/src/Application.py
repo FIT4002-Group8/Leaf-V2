@@ -1,6 +1,7 @@
 import json
 import os
-
+import io
+import zipfile
 from flask import Flask, Response, request, send_file
 from flask_cors import CORS
 
@@ -45,6 +46,36 @@ def create_app(test_config=None):
 
         res = {"message": "Successfully completed ETL process", "fileId": fileId}
         return Response(status=200, mimetype="application/json", response=json.dumps(res))
+
+    @app.route('/upload', methods=['POST'])
+    def upload_file():
+        file = request.files.get('file')  # Use .get() to avoid KeyError if 'file' is not present
+        if file is None:
+            return Response(
+                status=400,
+                mimetype="application/json",
+                response=json.dumps({"error": "No file part in the request"})
+            )
+
+        # Convert CSV file to ZIP file in memory
+        zip_io = io.BytesIO()
+        with zipfile.ZipFile(zip_io, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.writestr(file.filename, file.read())
+
+        zip_io.seek(0)  # Go to the start of the BytesIO object
+
+        try:
+            # Convert the BytesIO object to a file-like object for upload
+            fileId = etl_controller.upload(zip_io, file.filename)  # Pass the file-like object to upload
+            return Response(status=200, mimetype="application/json", response=json.dumps({"fileId": fileId}))
+
+        except Exception as e:
+            print(e)
+            return Response(
+                status=400,
+                mimetype="application/json",
+                response=json.dumps({"error": "Error while uploading report to Google Drive"})
+            )
 
     @app.route('/download', methods=['GET'])
     def download():

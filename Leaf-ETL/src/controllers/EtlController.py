@@ -8,9 +8,9 @@ from src.utils import FileUtils
 
 class EtlController:
     def __init__(self):
-        self.firestore_client = FirestoreClient("auth/leaf-f184f-firebase-adminsdk-2nh8n-87f2279075.json")
+        self.firestore_client = FirestoreClient("auth/leaf-f184f-firebase-adminsdk-2nh8n-e573fc2e3f.json")
         self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
-        self.gdrive_client = GDriveClient("auth/service_account_secret.json")
+        self.gdrive_client = GDriveClient("auth/leaf-430410-4be34f4b3d2b.json")
 
     def trigger_process(self, report_name):
         # print("Beginning EXTRACT Stage")
@@ -76,3 +76,6 @@ class EtlController:
         print("Uploaded file to Google Drive")
 
         return fileId
+
+    def upload(self, file, filename):
+        return self.gdrive_client.quickUpload(file, filename)

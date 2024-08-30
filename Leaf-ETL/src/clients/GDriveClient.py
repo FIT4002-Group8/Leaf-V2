@@ -2,7 +2,7 @@ import io
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload, MediaIoBaseUpload
 
 
 class GDriveClient:
@@ -20,6 +20,9 @@ class GDriveClient:
         # Call the Drive v3 API
         fileMetadata = self.client.files().list(fields="nextPageToken, files(id, name, mimeType, size, modifiedTime)",
                                                 q="name = '" + file_name + "'").execute()
+
+        print(file_name)
+        print(fileMetadata)
         fileId = fileMetadata['files'][0]['id']
 
         downloadRequest = self.client.files().get_media(fileId=fileId)
@@ -39,6 +42,13 @@ class GDriveClient:
     def uploadFile(self, file_name):
         file_metadata = {"name": file_name, "parents": ['1BJ6mt9jOKF7fhK_s10l5nvi4OImzObAF']}
         media = MediaFileUpload(file_name, mimetype="text/csv")
+        file = self.client.files().create(body=file_metadata, media_body=media, fields="id").execute()
+        print(f'File ID: {file.get("id")}')
+        return file.get("id")
+
+    def quickUpload(self, file_stream, file_name):
+        file_metadata = {"name": file_name, "parents": ['1BJ6mt9jOKF7fhK_s10l5nvi4OImzObAF']}
+        media = MediaIoBaseUpload(file_stream, mimetype="application/zip")
         file = self.client.files().create(body=file_metadata, media_body=media, fields="id").execute()
         print(f'File ID: {file.get("id")}')
         return file.get("id")
