@@ -202,7 +202,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
 
                 if (selectedReportType === "Quick Report") {
                     console.log(patients);
-                    const zip_file_id = await exportPatient(patients, title);
+                    const zip_file_id = await exportPatient(patients, title, password);
 
                     const file = new File(
                         zip_file_id["fileId"],

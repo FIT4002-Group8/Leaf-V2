@@ -1,32 +1,10 @@
-import * as FileSystem from "expo-file-system";
-import {shareAsync} from "expo-sharing";
 import Patient from "../model/patient/Patient";
-import Environment from "../state/environment/Environment";
-import {OS} from "../state/environment/types/OS";
 import axios from "axios";
 
-/**
- * Exports a list of selected patients into a CSV file format.
- *
- * @function
- * @async
- * @param {Patient[]} selectedPatients - An array of patients to be exported.
- *
- * @description
- * The function generates a CSV file with the following headers:
- * "MRN,DOB,FirstName,LastName,Gender,PhoneNumber,PostCode,TimeLastAllocated,AllocatedTo,Events".
- * The file name is generated based on the current date and time, sanitized to replace white spaces,
- * commas, colons, and slashes with underscores.
- *
- * Depending on the operating system, the function handles the file export differently:
- * 1. Android: Requests directory permissions and creates a file in the granted directory.
- * 2. iOS: Writes the CSV data directly into the file system and then shares the file.
- * 3. Web: Creates a blob and uses it to create an anchor element, which when clicked, downloads the CSV file.
- */
 // Define the URL of your Flask backend endpoint
 const FLASK_BACKEND_URL = 'http://127.0.0.1:5000/upload';
 
-export const exportPatient = async (selectedPatients: Patient[], title: string) => {
+export const exportPatient = async (selectedPatients: Patient[], title: string, password: string) => {
     if (selectedPatients.length === 0) {
         return;
     }
@@ -49,6 +27,7 @@ export const exportPatient = async (selectedPatients: Patient[], title: string) 
         // Create a FormData object to send the CSV file
         const formData = new FormData();
         formData.append('file', new Blob([csvData], {type: 'text/csv'}), filename);
+        formData.append('password', password);  // Add the password to the form data
 
         // Send the FormData object to the Flask backend
         const response = await axios.post(FLASK_BACKEND_URL, formData, {
@@ -62,4 +41,4 @@ export const exportPatient = async (selectedPatients: Patient[], title: string) 
     } catch (error) {
         console.error('Error uploading file to backend:', error);
     }
-}
+};

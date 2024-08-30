@@ -1,7 +1,7 @@
 import json
 import os
 import io
-import zipfile
+import pyzipper
 from flask import Flask, Response, request, send_file
 from flask_cors import CORS
 
@@ -49,7 +49,9 @@ def create_app(test_config=None):
 
     @app.route('/upload', methods=['POST'])
     def upload_file():
-        file = request.files.get('file')  # Use .get() to avoid KeyError if 'file' is not present
+        file = request.files.get('file')
+        password = request.form.get('password')  # Get password from the form data
+
         if file is None:
             return Response(
                 status=400,
@@ -57,16 +59,25 @@ def create_app(test_config=None):
                 response=json.dumps({"error": "No file part in the request"})
             )
 
-        # Convert CSV file to ZIP file in memory
+        if not password:
+            return Response(
+                status=400,
+                mimetype="application/json",
+                response=json.dumps({"error": "No password provided"})
+            )
+
+        # Create a password-protected ZIP file in memory using pyzipper
         zip_io = io.BytesIO()
-        with zipfile.ZipFile(zip_io, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        with pyzipper.AESZipFile(zip_io, 'w', compression=pyzipper.ZIP_DEFLATED,
+                                 encryption=pyzipper.WZ_AES) as zip_file:
+            zip_file.setpassword(password.encode('utf-8'))
             zip_file.writestr(file.filename, file.read())
 
         zip_io.seek(0)  # Go to the start of the BytesIO object
 
         try:
-            # Convert the BytesIO object to a file-like object for upload
-            fileId = etl_controller.upload(zip_io, file.filename)  # Pass the file-like object to upload
+            # Upload the ZIP file to Google Drive using your etl_controller
+            fileId = etl_controller.upload(zip_io, f"{file.filename}.zip")  # Provide the filename with .zip extension
             return Response(status=200, mimetype="application/json", response=json.dumps({"fileId": fileId}))
 
         except Exception as e:
@@ -80,9 +91,25 @@ def create_app(test_config=None):
     @app.route('/download', methods=['GET'])
     def download():
         file_title = request.args.get('file_title') + '.zip'
+        report_type = request.args.get('report_type')
+        file_id = request.args.get('file_id')
+
+        print(report_type)
 
         try:
-            etl_controller.gdrive_client.downloadFile(file_title)
+            if report_type == "Full Report":
+                etl_controller.gdrive_client.downloadFile(file_title)
+            else:
+                # Download the file as a BytesIO stream
+                file_stream = etl_controller.gdrive_client.quickDownload(file_id, file_title)
+
+                # Send the in-memory file as a response
+                return send_file(
+                    file_stream,
+                    as_attachment=True,
+                    download_name=f"{file_title}.zip",
+                    mimetype="application/zip"
+                )
         except Exception as e:
             print(e)
             res = {"error": "Error while downloading report from Google Drive"}

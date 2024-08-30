@@ -68,10 +68,11 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
             const title: string = selectedReport.title;
             const report_name: string = selectedReport.title;
             const password: string = selectedReport.password;
+            const report_type: string = selectedReport.reportType
 
             try {
                 const response = await axios.get('http://127.0.0.1:5000/download', {
-                    params: {file_id: file_id, file_title: title, password: password},
+                    params: {file_id: file_id, file_title: title, password: password, report_type: report_type},
                     responseType: 'blob',
                 });
 
