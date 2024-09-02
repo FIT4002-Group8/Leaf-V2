@@ -12,7 +12,7 @@ class EtlController:
         self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
         self.gdrive_client = GDriveClient("auth/leaf-430410-4be34f4b3d2b.json")
 
-    def trigger_process(self, report_name):
+    def trigger_process(self, report_name, password):
         # print("Beginning EXTRACT Stage")
         # self.__extract()
         # print("EXTRACT Stage Completed")
@@ -22,7 +22,7 @@ class EtlController:
         # print("TRANSFORM Stage Completed")
 
         print("Beginning LOAD Stage")
-        fileId = self.__load(report_name)
+        fileId = self.__load(report_name, password)
         print("LOAD Stage Completed")
 
         return fileId
@@ -62,13 +62,13 @@ class EtlController:
 
         self.postgres_client.close()
 
-    def __load(self, report_name):
+    def __load(self, report_name, password):
         print("Generating CSV's")
         FileUtils.convertOmopTablesToCsv(self.postgres_client, report_name)
         print("Successfully generated CSV's")
 
         print("Zipping output report")
-        FileUtils.createZippedOmopReport(report_name)
+        FileUtils.createZippedOmopReport(report_name, password)
         print("Zipped output report")
 
         print("Uploading zipped report to Google Drive")

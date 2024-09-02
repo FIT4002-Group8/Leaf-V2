@@ -36,9 +36,10 @@ def create_app(test_config=None):
     @app.route('/trigger', methods=['GET'])
     def trigger():
         report_name = request.args.get('title')
+        password = request.form.get('password')
 
         try:
-            fileId = etl_controller.trigger_process(report_name)
+            fileId = etl_controller.trigger_process(report_name, password)
         except DatabaseError as e:
             print(e)
             res = {"error": "Error while accessing database"}
