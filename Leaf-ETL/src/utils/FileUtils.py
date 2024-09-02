@@ -3,6 +3,16 @@ import pyzipper
 
 
 def createZippedOmopReport(directory, password):
+    """
+    Creates a zipped report of the specified directory, encrypted with a password.
+
+    Args:
+        directory (str): The directory to zip.
+        password (str): The password for the zipped file.
+
+    Returns:
+        None
+    """
     parent_folder = os.path.dirname('./' + directory)
     contents = os.walk(parent_folder)
 
@@ -12,14 +22,12 @@ def createZippedOmopReport(directory, password):
         if root == './' + directory:
             for folder_name in folders:
                 absolute_path = os.path.join(root, folder_name)
-                relative_path = absolute_path.replace(parent_folder + '\\',
-                                                      '')
+                relative_path = absolute_path.replace(parent_folder + '\\', '')
                 print("Adding '%s' to archive." % absolute_path)
                 zip_file.write(absolute_path, relative_path)
             for file_name in files:
                 absolute_path = os.path.join(root, file_name)
-                relative_path = absolute_path.replace(parent_folder + '\\',
-                                                      '')
+                relative_path = absolute_path.replace(parent_folder + '\\', '')
                 print("Adding '%s' to archive." % absolute_path)
                 zip_file.write(absolute_path, relative_path)
 
@@ -27,6 +35,16 @@ def createZippedOmopReport(directory, password):
 
 
 def convertOmopTablesToCsv(db, report_name):
+    """
+    Converts OMOP tables from the database into CSV files.
+
+    Args:
+        db (PostgresClient): The database client instance.
+        report_name (str): The name of the report to generate.
+
+    Returns:
+        None
+    """
     db.connect()
 
     # Convert OMOP tables into CSV's

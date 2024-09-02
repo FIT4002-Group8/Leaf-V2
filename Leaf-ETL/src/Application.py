@@ -12,7 +12,15 @@ etl_controller = EtlController()
 
 
 def create_app(test_config=None):
-    # Create and configure the application
+    """
+    Create and configure the Leaf OMOP Flask backend.
+
+    Args:
+        test_config (dict, optional): The configuration dictionary for testing. Defaults to None.
+
+    Returns:
+        Flask: The configured Flask application.
+    """
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)
     app.config.from_mapping(
@@ -32,9 +40,18 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    # Create a sample route for testing
     @app.route('/trigger', methods=['GET'])
     def trigger():
+        """
+        Accessible by the frontend to trigger the OMOP ETL process.
+
+        Query Parameters:
+            title (str): The name of the OMOP report to generate.
+            password (str): The password for the zipped OMOP report file.
+
+        Returns:
+            Response: The response object containing the status and message.
+        """
         report_name = request.args.get('title')
         password = request.form.get('password')
 
@@ -50,6 +67,16 @@ def create_app(test_config=None):
 
     @app.route('/upload', methods=['POST'])
     def upload_file():
+        """
+        Uploads a file to Google Drive after creating a password-protected ZIP file.
+
+        Form Data:
+            file (FileStorage): The file to upload.
+            password (str): The password for the zipped file.
+
+        Returns:
+            Response: The response object containing the status and file ID.
+        """
         file = request.files.get('file')
         password = request.form.get('password')  # Get password from the form data
 
@@ -91,6 +118,17 @@ def create_app(test_config=None):
 
     @app.route('/download', methods=['GET'])
     def download():
+        """
+        Downloads a file from Google Drive.
+
+        Query Parameters:
+            file_title (str): The title of the file to download.
+            report_type (str): The type of report (e.g., "Full Report").
+            file_id (str): The ID of the file to download.
+
+        Returns:
+            Response: The response object containing the file stream or an error message.
+        """
         file_title = request.args.get('file_title') + '.zip'
         report_type = request.args.get('report_type')
         file_id = request.args.get('file_id')

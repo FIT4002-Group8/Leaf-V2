@@ -7,19 +7,41 @@ from src.utils import FileUtils
 
 
 class EtlController:
+    """
+    Orchestrates the OMOP ETL (Extract, Transform, Load) process using Firestore, PostgreSQL, and Google Drive.
+
+    Attributes:
+        firestore_client (FirestoreClient): The client for interacting with Firestore.
+        postgres_client (PostgresClient): The client for interacting with PostgreSQL.
+        gdrive_client (GDriveClient): The client for interacting with Google Drive.
+    """
+
     def __init__(self):
-        self.firestore_client = FirestoreClient("auth/leaf-f184f-firebase-adminsdk-2nh8n-e573fc2e3f.json")
+        """
+        Initializes the EtlController with the necessary clients.
+        """
+        self.firestore_client = FirestoreClient("auth/leaf-f184f-firebase-adminsdk-2nh8n-87f2279075.json")
         self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
-        self.gdrive_client = GDriveClient("auth/leaf-430410-4be34f4b3d2b.json")
+        self.gdrive_client = GDriveClient("auth/service_account_secret.json")
 
     def trigger_process(self, report_name, password):
-        # print("Beginning EXTRACT Stage")
-        # self.__extract()
-        # print("EXTRACT Stage Completed")
-        #
-        # print("Beginning TRANSFORM Stage")
-        # self.__transform()
-        # print("TRANSFORM Stage Completed")
+        """
+        Triggers the standard OMOP ETL process.
+
+        Args:
+            report_name (str): The name of the report to generate.
+            password (str): The password for the zipped report file.
+
+        Returns:
+            str: The ID of the uploaded file on Google Drive.
+        """
+        print("Beginning EXTRACT Stage")
+        self.__extract()
+        print("EXTRACT Stage Completed")
+
+        print("Beginning TRANSFORM Stage")
+        self.__transform()
+        print("TRANSFORM Stage Completed")
 
         print("Beginning LOAD Stage")
         fileId = self.__load(report_name, password)
@@ -28,6 +50,10 @@ class EtlController:
         return fileId
 
     def __extract(self):
+        """
+        The Extract step of the ETL process. Reads in Nosql data from Firestore and stores it in Postgres so that
+        transformations can be performed
+        """
         # Connect to Postgres & reset the tables
         self.postgres_client.connect()
         self.postgres_client.reset_etl_tables()
@@ -44,9 +70,14 @@ class EtlController:
         self.postgres_client.close()
 
     def __transform(self):
+        """
+        The Transform step of the ETL process. Performs pre-determined transformations on the data stored in Firestore
+        to convert it so that it is compliant with the OMOP schema.
+        """
         self.postgres_client.connect()
         sql_directory = 'postgres/transformations'
 
+        # Iterate over OMOP transformation scripts, read in SQL commands and execute them
         for file in sorted(os.listdir(sql_directory)):
             filename = os.fsdecode(file)
             if filename.endswith('.sql'):
@@ -63,6 +94,17 @@ class EtlController:
         self.postgres_client.close()
 
     def __load(self, report_name, password):
+        """
+        The Load step of the ETL process. The transformed OMOP data is loaded from Postgres into CSV files. These files
+        are then zipped and uploaded back to Google Drive. A file record is also stored in Firestore.
+
+        Args:
+            report_name (str): The name of the report to generate.
+            password (str): The password for the zipped report file.
+
+        Returns:
+            str: The ID of the uploaded file on Google Drive.
+        """
         print("Generating CSV's")
         FileUtils.convertOmopTablesToCsv(self.postgres_client, report_name)
         print("Successfully generated CSV's")
@@ -78,4 +120,14 @@ class EtlController:
         return fileId
 
     def upload(self, file, filename):
+        """
+        Uploads a Leaf Quick Report to Google Drive.
+
+        Args:
+            file (io.BytesIO): The data to upload.
+            filename (str): The name to upload the file with.
+
+        Returns:
+            str: The ID of the uploaded file on Google Drive.
+        """
         return self.gdrive_client.quickUpload(file, filename)
