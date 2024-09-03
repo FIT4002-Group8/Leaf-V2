@@ -5,3 +5,4 @@ psycopg2-binary==2.9.9
 pytest
 pytest-html
 flask_cors
+pyzipper~=0.3.6

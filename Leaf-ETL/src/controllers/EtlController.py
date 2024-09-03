@@ -20,7 +20,7 @@ class EtlController:
         """
         Initializes the EtlController with the necessary clients.
         """
-        self.firestore_client = FirestoreClient("auth/leaf-f184f-firebase-adminsdk-2nh8n-87f2279075.json")
+        self.firestore_client = FirestoreClient("auth/firestore_secret.json")
         self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
         self.gdrive_client = GDriveClient("auth/service_account_secret.json")
 
