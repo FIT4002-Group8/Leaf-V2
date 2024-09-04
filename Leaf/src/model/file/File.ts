@@ -1,20 +1,11 @@
-import employeeID from "../employee/EmployeeID";
 import {FileFilters} from "./FileFilters";
 
-type Filters = {
-    assigned_to?: string;
-    from_date?: Date;
-    to_date?: Date;
-    hospital_site?: string;
-    medical_unit?: string;
-    sex?: string;
-    triage_code?: string[];
-    ward?: string;
-};
-
-
+// Class representing a file with various properties and methods
 class File {
+    // Public property for the file's unique ID
     public id: string;
+
+    // Protected properties with private-like access, requiring getters and setters
     protected _title: string;
     protected _author: string;
     protected _reportType: string;
@@ -22,34 +13,37 @@ class File {
     protected _created: Date;
     protected _filters: FileFilters = {};
 
+    // Getter for the file's title
     public get title(): string {
         return this._title;
     }
 
+    // Getter for the file's author
     public get author(): string {
         return this._author;
     }
 
+    // Getter for the report type of the file
     public get reportType(): string {
         return this._reportType;
     }
 
+    // Getter for the file's password
     public get password(): string {
         return this._password;
     }
 
+    // Getter for the creation date of the file
     public get created(): Date {
         return this._created;
     }
 
+    // Getter for the file's filters
     public get filters(): FileFilters {
         return this._filters;
     }
 
-    public get fileDetails(): string {
-        return `Title: ${this.title}, Author: ${this.author}, Report Type: ${this.reportType}, Created: ${this.created.toISOString()}`;
-    }
-
+    // Constructor to initialize the file with provided values
     constructor(
         id: string,
         title: string,
@@ -68,28 +62,14 @@ class File {
         this._filters = filters;
     }
 
+    // Method to set a new title for the file
     public setTitle(title: string) {
         this._title = title;
     }
 
-    public setAuthor(author: string) {
-        this._author = author;
-    }
-
-    public setReportType(reportType: string) {
-        this._reportType = reportType;
-    }
-
-    public setCreated(created: Date) {
-        this._created = created;
-    }
-
+    // Method to set a new password for the file
     public setPassword(password: string) {
         this._password = password;
-    }
-
-    public setFilters(filters: FileFilters) {
-        this._filters = filters;
     }
 }
 

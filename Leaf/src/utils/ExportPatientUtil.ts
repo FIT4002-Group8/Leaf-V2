@@ -8,10 +8,6 @@ export const exportPatient = async (selectedPatients: Patient[], title: string, 
     if (selectedPatients.length === 0) {
         return;
     }
-    const date = new Date();
-    const dateString = date.toLocaleString();
-    const regex = /[,\s:\/]/g;
-    const sanitizedDatestring = dateString.replace(regex, "_");
 
     const filename = `${title}.csv`;
     let csvData = "MRN,DOB,FirstName,LastName,Gender,PhoneNumber,PostCode,TimeLastAllocated,AllocatedTo,Events\n";
@@ -27,7 +23,7 @@ export const exportPatient = async (selectedPatients: Patient[], title: string, 
         // Create a FormData object to send the CSV file
         const formData = new FormData();
         formData.append('file', new Blob([csvData], {type: 'text/csv'}), filename);
-        formData.append('password', password);  // Add the password to the form data
+        formData.append('password', password);
 
         // Send the FormData object to the Flask backend
         const response = await axios.post(FLASK_BACKEND_URL, formData, {
