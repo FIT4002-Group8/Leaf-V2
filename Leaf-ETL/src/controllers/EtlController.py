@@ -13,13 +13,13 @@ class EtlController:
         self.gdrive_client = GDriveClient("auth/leaf-430410-4be34f4b3d2b.json")
 
     def trigger_process(self, report_name, password):
-        # print("Beginning EXTRACT Stage")
-        # self.__extract()
-        # print("EXTRACT Stage Completed")
-        #
-        # print("Beginning TRANSFORM Stage")
-        # self.__transform()
-        # print("TRANSFORM Stage Completed")
+        print("Beginning EXTRACT Stage")
+        self.__extract()
+        print("EXTRACT Stage Completed")
+
+        print("Beginning TRANSFORM Stage")
+        self.__transform()
+        print("TRANSFORM Stage Completed")
 
         print("Beginning LOAD Stage")
         fileId = self.__load(report_name, password)

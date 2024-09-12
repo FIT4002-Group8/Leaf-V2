@@ -442,3 +442,9 @@ csv-get/client_secret.json
 csv-get/mycreds.txt
 
 csv-get/service_key.json
+
+Leaf-ETL/postgres/vocabularies/CONCEPT.csv
+
+Leaf-ETL/auth/
+
+Leaf/auth/

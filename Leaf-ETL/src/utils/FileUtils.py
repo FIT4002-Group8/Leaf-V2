@@ -7,7 +7,7 @@ def createZippedOmopReport(directory, password):
     contents = os.walk(parent_folder)
 
     zip_file = pyzipper.AESZipFile(directory + '.zip', 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES)
-    zip_file.pwd = password
+    zip_file.pwd = str.encode(password)
     for root, folders, files in contents:
         if root == './' + directory:
             for folder_name in folders:
