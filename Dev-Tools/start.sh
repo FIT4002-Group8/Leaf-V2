@@ -7,4 +7,4 @@ echo "Building Leaf-ETL Service"
 docker build -t leaf-etl ../Leaf-ETL
 
 echo "Starting Docker Containers"
-docker-compose -f ./docker/docker-compose.yml up -d
+docker compose -f ./docker/docker-compose.yml up -d

@@ -35,11 +35,14 @@ import LeafDateInput from "../base/LeafDateInput/LeafDateInput";
 import {exportPatient} from "../../utils/ExportPatientUtil";
 import Patient from "../../model/patient/Patient";
 
+// Define the props for the ExportPatientScreen component
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
 }
 
+// Main component for exporting patient data
 const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
+    // State variables for various selections and component states
     const [componentWidth, setComponentWidth] = useState(StateManager.contentWidth.read());
     const [selectedHospital, setSelectedHospital] = useState<LeafSelectionItem<Hospital> | undefined>();
     const [selectedWard, setSelectedWard] = useState<LeafSelectionItem<Ward> | undefined>();
@@ -62,6 +65,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const [isToDateValid, setIsToDateValid] = useState(true);
     const [patients, setPatients] = useState<Patient[]>(Session.inst.getAllPatients());
 
+    // useEffect for fetching patients and managing subscriptions to patient updates
     useEffect(() => {
         const unsubscribePatients = StateManager.patientsFetched.subscribe(() => {
             setPatients(Session.inst.getAllPatients());
@@ -76,6 +80,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
         };
     }, []);
 
+    // Handler for export button press
     const handleExportButtonPress = () => {
         if (selectedButton) {
             setPopupVisible(true);
@@ -90,7 +95,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
         await generateReport(title, password);
     };
 
-    // Effect to handle fetching and updating workers data
+    // useEffect to handle fetching and updating workers data
     useEffect(() => {
         const unsubscribeWorkers = StateManager.workersFetched.subscribe(() => {
             setWorkers(Session.inst.getAllWorkers());
@@ -100,12 +105,14 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
 
         // Fetch all workers when the component is mounted
         Session.inst.fetchAllWorkers();
+
         // Cleanup: Unsubscribe from workersFetched event when the component is unmounted
         return () => {
             unsubscribeWorkers();
         };
     }, []);
 
+    // Helper function to determine the column count based on the component width
     const determineColumnCount = (width: number): number => {
         if (width < 365) {
             return 1;
@@ -120,7 +127,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
     const buttonSpacing = LeafDimensions.screenSpacing;
     const buttonWidth = (componentWidth - ((columnCount - 1) * buttonSpacing / 2)) / columnCount;
 
-    // Function to handle custom tile selection
+    // Handler for toggling the custom tile selection
     const handleCustomTileSelection = () => {
         setFromDateFilter(undefined)
         setIsFromDateValid(true)
@@ -136,6 +143,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
         setIsCustomTileSelected(!isCustomTileSelected);
     };
 
+    // Map worker data to LeafSelectionItems for rendering in the dropdowns
     const workerItems = workers.map((worker) => {
         return new LeafSelectionItem<Worker>(worker.fullName, worker.id.toString(), worker);
     });
@@ -145,6 +153,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
         setAssignedTo(item as LeafSelectionItem<Worker> | undefined);
     };
 
+    // Handle patient sex (gender) selection
     const handleSexSelection = (sexes: PatientSex[]) => {
         setSelectedSexes(sexes);
     };
@@ -178,11 +187,12 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
         }
     };
 
+    // Function to generate the report based on the selected report type and filters
     const generateReport = async (title: string, password: string) => {
         if (selectedReportType && selectedButton) {
             showDefaultNotification(strings("label.pleaseWait"), strings("label.generatingReport"), 'progress-download')
 
-            // TODO - Create filters object
+            // TODO - use as props for custom report
             const filters: FileFilters = {
                 from_date: null,
                 to_date: null,
@@ -190,7 +200,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                 hospital_site: "",
                 medical_unit: "",
                 sex: "",
-                triage_code: [], // Adjust according to TriageCode structure
+                triage_code: [],
                 ward: "",
             };
 
@@ -213,10 +223,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                         created,
                         filters
                     );
-                    // Set file in session or save to DB
                     await Session.inst.submitNewFile(file);
-
-
                     showSuccessNotification(strings("feedback.successGenerateReport"));
                 } else {
                     // Make the GET request to the Flask endpoint

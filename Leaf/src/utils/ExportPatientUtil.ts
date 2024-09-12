@@ -8,10 +8,6 @@ export const exportPatient = async (selectedPatients: Patient[], title: string, 
     if (selectedPatients.length === 0) {
         return;
     }
-    const date = new Date();
-    const dateString = date.toLocaleString();
-    const regex = /[,\s:\/]/g;
-    const sanitizedDatestring = dateString.replace(regex, "_");
 
     const filename = `${title}.csv`;
     let csvData = "MRN,DOB,FirstName,LastName,Gender,PhoneNumber,PostCode,TimeLastAllocated,AllocatedTo,Events\n";
@@ -35,7 +31,6 @@ export const exportPatient = async (selectedPatients: Patient[], title: string, 
                 'Content-Type': 'multipart/form-data',
             },
         });
-
         console.log('File uploaded successfully:', response.data);
         return response.data;
     } catch (error) {
