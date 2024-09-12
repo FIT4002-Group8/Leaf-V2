@@ -22,22 +22,26 @@ import File from "../../model/file/File";
 import LeafDateInput from "../base/LeafDateInput/LeafDateInput";
 import LeafReportSearchBar from "../base/LeafSearchBar/LeafReportSearchBar";
 
+// Define the properties expected by the FileHistoryScreen component
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
 }
 
-const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
+// The main component for the File History Screen
+const FileHistoryScreen: React.FC<Props> = () => {
+    // State for selected report, notification trigger, and list of files
     const [selectedReport, setSelectedReport] = useState<File | null>(null);
     const [notify, setNotify] = useState(false);
     const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
     const [files, setFiles] = useState<File[]>([]);
 
-    // Filter states
+    // State for filters
     const [titleFilter, setTitleFilter] = useState<string>("");
     const [fromDateFilter, setFromDateFilter] = useState<Date | undefined>();
     const [toDateFilter, setToDateFilter] = useState<Date | undefined>(new Date());
     const [dateError, setDateError] = useState<string | null>(null);
 
+    // useEffect hook to subscribe to file updates and fetch files initially
     useEffect(() => {
         const unsubscribeFiles = StateManager.filesFetched.subscribe(() => {
             setFiles(Session.inst.getAllFiles());
@@ -46,21 +50,23 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         // Fetch files initially
         Session.inst.fetchAllFiles();
 
-        // Cleanup subscription on unmount
+        // Cleanup subscription on component unmount
         return () => {
             unsubscribeFiles();
         };
     }, []);
 
+    // Toggles the selection of a report
     const toggleReportSelect = (report: File) => {
         setNotify(false);
         if (selectedReport && selectedReport.title === report.title) {
-            setSelectedReport(null);
+            setSelectedReport(null); // Deselect if already selected
         } else {
-            setSelectedReport(report);
+            setSelectedReport(report); // Select the clicked report
         }
     };
 
+    // Function to handle the export/download of the selected report
     const exportReport = async () => {
         showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download');
         if (selectedReport) {
@@ -68,14 +74,16 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
             const title: string = selectedReport.title;
             const report_name: string = selectedReport.title;
             const password: string = selectedReport.password;
-            const report_type: string = selectedReport.reportType
+            const report_type: string = selectedReport.reportType;
 
             try {
+                // Request to download the report
                 const response = await axios.get('http://127.0.0.1:5000/download', {
                     params: {file_id: file_id, file_title: title, password: password, report_type: report_type},
                     responseType: 'blob',
                 });
 
+                // Create a download link and trigger download
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const a = document.createElement('a');
                 a.href = url;
@@ -90,34 +98,36 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                 showErrorNotification(strings("feedback.failDownloadReport"));
             }
         } else {
-            setNotify(true);
+            setNotify(true); // Trigger notification if no report is selected
             showErrorNotification(strings("label.noReportSelected"));
         }
     };
 
-    // Define the interface for the grouped reports
+    // Interface for grouped reports by month and year
     interface GroupedReports {
         monthYear: string;
         reports: File[];
     }
 
+    // Function to group reports by their creation month and year
     const groupReportsByMonth = (reports: File[]): GroupedReports[] => {
         const groupedReports: GroupedReports[] = [];
         reports
             .slice()
-            .sort((a, b) => b.created.getTime() - a.created.getTime())
+            .sort((a, b) => b.created.getTime() - a.created.getTime()) // Sort by creation date (newest first)
             .forEach(report => {
                 const monthYear = report.created.toLocaleString('default', {month: 'long', year: 'numeric'});
                 const existingGroupIndex = groupedReports.findIndex(group => group.monthYear === monthYear);
                 if (existingGroupIndex !== -1) {
-                    groupedReports[existingGroupIndex].reports.push(report);
+                    groupedReports[existingGroupIndex].reports.push(report); // Add to existing group
                 } else {
-                    groupedReports.push({monthYear: monthYear, reports: [report]});
+                    groupedReports.push({monthYear: monthYear, reports: [report]}); // Create a new group
                 }
             });
         return groupedReports;
     };
 
+    // Function to apply title and date filters to the reports
     const applyFilters = (reports: File[]): File[] => {
         if (dateError) {
             return [];
@@ -130,7 +140,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         });
     };
 
-    // Validate dates
+    // useEffect hook to validate date filters
     useEffect(() => {
         if (fromDateFilter && toDateFilter && fromDateFilter > toDateFilter) {
             setDateError("From date cannot be after the To date.");
@@ -139,6 +149,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         }
     }, [fromDateFilter, toDateFilter]);
 
+    // Apply filters and group the reports by month and year
     const filteredReports = applyFilters(files);
     const groupedReports = groupReportsByMonth(filteredReports);
 
@@ -152,17 +163,16 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                     type={LeafButtonType.Filled}
                     color={LeafColors.accent}
                     onPress={async () => {
-                        exportReport();
+                        await exportReport(); // Handle report download on button press
                         console.log("Downloading report: ", selectedReport);
                     }}
                 />
-                {/* Filters */}
+                {/* Filters Section */}
                 <HStack spacing={8} style={{display: 'flex', alignItems: 'center', width: '100%'}}>
                     <View style={{flex: 3}}>
                         <LeafReportSearchBar
                             label={strings("search.underlying")}
-                            // value={titleFilter}
-                            onTextChange={setTitleFilter}
+                            onTextChange={setTitleFilter} // Update title filter
                             data={[]}
                             setData={() => {
                             }}
@@ -174,7 +184,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                         <LeafDateInput
                             label={strings("label.fromDate")}
                             onChange={(date) => {
-                                setFromDateFilter(date);
+                                setFromDateFilter(date); // Update from date filter
                             }}
                         />
                     </View>
@@ -183,7 +193,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                             label={strings("label.toDate")}
                             initialValue={new Date()}
                             onChange={(date) => {
-                                setToDateFilter(date);
+                                setToDateFilter(date); // Update to date filter
                             }}
                         />
                     </View>
@@ -202,7 +212,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                         }}
                     >
                         {selectedReport === null
-                            ? strings("label.noReportSelected")
+                            ? strings("label.noReportSelected") // Show message if no report selected
                             : selectedReport.title + strings("label.reportSelected")}
                     </LeafText>
                 </HStack>
@@ -219,8 +229,8 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                                 renderItem={({item: report}) => (
                                     <ExportReportCard
                                         report={report}
-                                        isSelected={selectedReport?.title === report.title}
-                                        onPress={() => toggleReportSelect(report)}
+                                        isSelected={selectedReport?.title === report.title} // Highlight if selected
+                                        onPress={() => toggleReportSelect(report)} // Handle report selection
                                     />
                                 )}
                                 keyExtractor={(report) => report.id}
