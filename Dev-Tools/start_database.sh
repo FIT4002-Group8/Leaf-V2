@@ -1,7 +1,7 @@
 #!/bin/bash
 docker volume create leafdb
 docker build -t leaf-etl-postgres ../Leaf-ETL/postgres
-docker-compose -f ./docker/docker-compose-postgres.yml up -d
+docker compose -f ./docker/docker-compose-postgres.yml up -d
 
 sleep 5
 echo "Waiting 5 seconds for Postgres to start up"
