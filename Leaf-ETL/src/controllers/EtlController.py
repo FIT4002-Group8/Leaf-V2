@@ -1,8 +1,8 @@
 import os
 
-from src.clients.FirestoreClient import FirestoreClient
-from src.clients.PostgresClient import PostgresClient
-from src.clients.GDriveClient import GDriveClient
+from src.clients import FirestoreClient
+from src.clients import PostgresClient
+from src.clients import GDriveClient
 from src.utils import FileUtils
 
 
@@ -20,9 +20,9 @@ class EtlController:
         """
         Initializes the EtlController with the necessary clients.
         """
-        self.firestore_client = FirestoreClient("auth/firestore_secret.json")
-        self.postgres_client = PostgresClient("leaf-etl", "admin", "password")
-        self.gdrive_client = GDriveClient("auth/service_account_secret.json")
+        self.firestore_client = FirestoreClient.FirestoreClient("auth/firestore_secret.json")
+        self.postgres_client = PostgresClient.PostgresClient("leaf-etl", "admin", "password")
+        self.gdrive_client = GDriveClient.GDriveClient("auth/service_account_secret.json")
 
     def trigger_process(self, report_name, password):
         """
