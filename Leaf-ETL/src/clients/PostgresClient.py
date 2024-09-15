@@ -68,7 +68,7 @@ class PostgresClient:
         """
         Resets the ETL tables by truncating the specified tables.
         """
-        self.__check_connection()
+        self.check_connection()
         self.execute_query("TRUNCATE omop_person, omop_observation_period, omop_location, omop_care_site,"
                            "omop_provider, omop_drug_exposure, triage_case, events, omop_episode, omop_measurement,"
                            "omop_procedure_occurrence, omop_condition_occurrence, omop_visit_occurrence,"
@@ -81,7 +81,7 @@ class PostgresClient:
         Args:
             workers (list): A list of dictionaries, each representing a provider.
         """
-        self.__check_connection()
+        self.check_connection()
 
         query = """
         INSERT INTO
@@ -102,7 +102,7 @@ class PostgresClient:
         Args:
             patients (list): A list of dictionaries, each representing a patient.
         """
-        self.__check_connection()
+        self.check_connection()
 
         query = """
         INSERT INTO
@@ -123,7 +123,7 @@ class PostgresClient:
         Args:
             patients (list): A list of dictionaries, each representing a patient with triage case details.
         """
-        self.__check_connection()
+        self.check_connection()
 
         # Add nullable Discharge Date and Discharge Ward
         query = """
@@ -146,7 +146,7 @@ class PostgresClient:
         Args:
             patients (list): A list of dictionaries, each representing a patient with event details.
         """
-        self.__check_connection()
+        self.check_connection()
 
         query = """
         INSERT INTO
@@ -227,7 +227,7 @@ class PostgresClient:
         except Exception as e:
             raise DatabaseError("Error executing query", e)
 
-    def __check_connection(self):
+    def check_connection(self):
         """
         Checks if the connection to the database is established.
 
