@@ -228,7 +228,7 @@ const ExportPatientScreen: React.FC<Props> = ({navigation}) => {
                 } else {
                     // Make the GET request to the Flask endpoint
                     const zip_file_id = await axios.get('http://127.0.0.1:5000/trigger', {
-                        params: {title: title},
+                        params: { title: title, password: password },
                     });
 
                     // Generate or fetch file_id
