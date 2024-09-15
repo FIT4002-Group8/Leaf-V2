@@ -72,7 +72,7 @@ class PostgresClient:
         self.execute_query("TRUNCATE omop_person, omop_observation_period, omop_location, omop_care_site,"
                            "omop_provider, omop_drug_exposure, triage_case, events, omop_episode, omop_measurement,"
                            "omop_procedure_occurrence, omop_condition_occurrence, omop_visit_occurrence,"
-                           "omop_device_exposure, omop_observation, patient;")
+                           "omop_device_exposure, omop_observation, omop_note, patient, provider;")
 
     def insert_providers(self, workers):
         """
