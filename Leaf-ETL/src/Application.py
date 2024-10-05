@@ -40,7 +40,7 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    @app.route('/trigger', methods=['GET'])
+    @app.route('/trigger', methods=['POST'])
     def trigger():
         """
         Accessible by the frontend to trigger the OMOP ETL process.
