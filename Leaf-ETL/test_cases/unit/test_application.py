@@ -28,7 +28,7 @@ class TestApplication(unittest.TestCase):
         Test the trigger process endpoint for a successful response.
         """
         self.mock_etl_controller.trigger_process.return_value = 'fake_file_id'
-        response = self.client.get('/trigger?title=test_report', data={'password': 'test_password'})
+        response = self.client.post('/trigger?title=test_report', data={'password': 'test_password'})
         data = json.loads(response.data)
 
     def test_trigger_database_error(self):
@@ -36,7 +36,7 @@ class TestApplication(unittest.TestCase):
         Test the trigger process endpoint for a database error.
         """
         self.mock_etl_controller.trigger_process.side_effect = DatabaseError('Database error')
-        response = self.client.get('/trigger?title=test_report', data={'password': 'test_password'})
+        response = self.client.post('/trigger?title=test_report', data={'password': 'test_password'})
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 400)
