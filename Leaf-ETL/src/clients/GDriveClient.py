@@ -55,7 +55,6 @@ class GDriveClient:
             status, done = downloader.next_chunk()
             print(f"Download {int(status.progress() * 100)}% complete.")
 
-
         # Write the data into a new file
         file.seek(0)
         with open(file_name, 'wb') as f:

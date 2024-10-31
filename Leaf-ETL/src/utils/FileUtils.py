@@ -13,14 +13,18 @@ def createZippedOmopReport(directory, password):
     Returns:
         None
     """
+
+    # Get a list of all files in the output folder
     parent_folder = os.path.dirname('./' + directory)
     contents = os.walk(parent_folder)
 
+    # Create an empty zip file with the directory name
     zip_file = pyzipper.AESZipFile(directory + '.zip', 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES)
     zip_file.pwd = password.encode()
     for root, folders, files in contents:
-        if root == './' + directory:
+        if root == './' + directory:  # Ensure we're taking files from the correct directory
             for folder_name in folders:
+                # Get the current path and create a relative path for the zip to reference
                 absolute_path = os.path.join(root, folder_name)
                 relative_path = absolute_path.replace(parent_folder + '\\', '')
                 print("Adding '%s' to archive." % absolute_path)
