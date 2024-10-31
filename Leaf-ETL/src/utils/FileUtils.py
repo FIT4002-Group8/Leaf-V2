@@ -20,9 +20,7 @@ def createZippedOmopReport(directory, password):
 
     # Create an empty zip file with the directory name
     zip_file = pyzipper.AESZipFile(directory + '.zip', 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES)
-    zip_file.pwd = password
-
-    # Iterate through every output file
+    zip_file.pwd = password.encode()
     for root, folders, files in contents:
         if root == './' + directory:  # Ensure we're taking files from the correct directory
             for folder_name in folders:

@@ -53,7 +53,7 @@ class GDriveClient:
         done = False
         while done is False:
             status, done = downloader.next_chunk()
-            print(f"Download {int(status.progress() * 100)}.")
+            print(f"Download {int(status.progress() * 100)}% complete.")
 
         # Write the data into a new file
         file.seek(0)

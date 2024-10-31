@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 from src.exceptions.DatabaseError import DatabaseError
-from src.clients.PostgresClient import PostgresClient  # Assuming the class is in src.postgres_client
+from src.clients.PostgresClient import PostgresClient
 
 
 class TestPostgresClient(unittest.TestCase):

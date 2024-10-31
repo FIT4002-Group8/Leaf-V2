@@ -53,7 +53,7 @@ def create_app(test_config=None):
             Response: The response object containing the status and message.
         """
         report_name = request.args.get('title')
-        password = request.form.get('password')
+        password = request.args.get('password')
 
         try:
             fileId = etl_controller.trigger_process(report_name, password)

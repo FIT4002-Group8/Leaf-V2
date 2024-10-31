@@ -22,14 +22,20 @@ import File from "../../model/file/File";
 import LeafDateInput from "../base/LeafDateInput/LeafDateInput";
 import LeafReportSearchBar from "../base/LeafSearchBar/LeafReportSearchBar";
 
+// Define the props interface for the FileHistoryScreen component
 interface Props {
     navigation?: NavigationProp<ParamListBase>;
 }
 
+// Main component for displaying file history and exporting reports
 const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
+    // State to hold the currently selected report
     const [selectedReport, setSelectedReport] = useState<File | null>(null);
+    // State to manage notification trigger
     const [notify, setNotify] = useState(false);
+    // Access notification functions to display error, success, and default notifications
     const {showErrorNotification, showSuccessNotification, showDefaultNotification} = useNotificationSession();
+    // State to store all files fetched from the session
     const [files, setFiles] = useState<File[]>([]);
 
     // Filter states
@@ -38,22 +44,25 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
     const [toDateFilter, setToDateFilter] = useState<Date | undefined>(new Date());
     const [dateError, setDateError] = useState<string | null>(null);
 
+    // useEffect hook to fetch files and subscribe to file updates
     useEffect(() => {
         const unsubscribeFiles = StateManager.filesFetched.subscribe(() => {
             setFiles(Session.inst.getAllFiles());
         });
 
-        // Fetch files initially
+        // Fetch files initially when the component mounts
         Session.inst.fetchAllFiles();
 
-        // Cleanup subscription on unmount
+        // Cleanup subscription on component unmount
         return () => {
             unsubscribeFiles();
         };
     }, []);
 
+    // Function to toggle the selection of a report
     const toggleReportSelect = (report: File) => {
         setNotify(false);
+        // Deselect the report if it's already selected
         if (selectedReport && selectedReport.title === report.title) {
             setSelectedReport(null);
         } else {
@@ -61,63 +70,80 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         }
     };
 
+    // Function to handle exporting the selected report
     const exportReport = async () => {
+        // Show loading notification while the report is being downloaded
         showDefaultNotification(strings("label.pleaseWait"), strings("label.downloadingFile"), 'progress-download');
         if (selectedReport) {
+            // Convert the report's created date to a sanitized string
+            const dateString = selectedReport.created.toLocaleString();
+            const regex = /[,\s:\/]/g;
+            const sanitizedDateString = dateString.replace(regex, "_");
+
             const file_id: string = selectedReport.id;
             const title: string = selectedReport.title;
-            const report_name: string = selectedReport.title;
+            const download_title: string = selectedReport.title + ' (' + sanitizedDateString + ')';
             const password: string = selectedReport.password;
-            const report_type: string = selectedReport.reportType
+            const report_type: string = selectedReport.reportType;
 
             try {
+                // Make an API call to download the report
                 const response = await axios.get('http://127.0.0.1:5000/download', {
                     params: {file_id: file_id, file_title: title, password: password, report_type: report_type},
                     responseType: 'blob',
                 });
 
+                // Create a URL for the downloaded file and trigger the download
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${report_name}.zip`;
+                a.download = `${download_title}.zip`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
+
+                // Show success notification after the file is downloaded
                 showSuccessNotification(strings("feedback.successDownloadReport"));
             } catch (error) {
+                // Show error notification if the file download fails
                 console.error('Error downloading the file', error);
                 showErrorNotification(strings("feedback.failDownloadReport"));
             }
         } else {
+            // Show error notification if no report is selected
             setNotify(true);
             showErrorNotification(strings("label.noReportSelected"));
         }
     };
 
-    // Define the interface for the grouped reports
+    // Define the interface for grouped reports by month and year
     interface GroupedReports {
         monthYear: string;
         reports: File[];
     }
 
+    // Function to group reports by month and year
     const groupReportsByMonth = (reports: File[]): GroupedReports[] => {
         const groupedReports: GroupedReports[] = [];
         reports
             .slice()
-            .sort((a, b) => b.created.getTime() - a.created.getTime())
+            .sort((a, b) => b.created.getTime() - a.created.getTime()) // Sort reports by creation date in descending order
             .forEach(report => {
                 const monthYear = report.created.toLocaleString('default', {month: 'long', year: 'numeric'});
                 const existingGroupIndex = groupedReports.findIndex(group => group.monthYear === monthYear);
+                // If a group for the same month and year exists, add the report to that group
                 if (existingGroupIndex !== -1) {
                     groupedReports[existingGroupIndex].reports.push(report);
                 } else {
+                    // Otherwise, create a new group
                     groupedReports.push({monthYear: monthYear, reports: [report]});
                 }
             });
         return groupedReports;
     };
 
+    // Function to apply filters to the list of reports based on title and date range
     const applyFilters = (reports: File[]): File[] => {
         if (dateError) {
             return [];
@@ -130,7 +156,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         });
     };
 
-    // Validate dates
+    // useEffect hook to validate the date filters and set an error message if necessary
     useEffect(() => {
         if (fromDateFilter && toDateFilter && fromDateFilter > toDateFilter) {
             setDateError("From date cannot be after the To date.");
@@ -139,12 +165,15 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
         }
     }, [fromDateFilter, toDateFilter]);
 
+    // Apply filters to the files and group the filtered reports by month
     const filteredReports = applyFilters(files);
     const groupedReports = groupReportsByMonth(filteredReports);
 
+    // JSX for rendering the UI components
     return (
         <DefaultScreenContainer>
             <VStack spacing={16}>
+                {/* Button to trigger the report download */}
                 <LeafButton
                     label="Download"
                     icon="file-download"
@@ -161,7 +190,6 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
                     <View style={{flex: 3}}>
                         <LeafReportSearchBar
                             label={strings("search.underlying")}
-                            // value={titleFilter}
                             onTextChange={setTitleFilter}
                             data={[]}
                             setData={() => {
@@ -210,6 +238,7 @@ const FileHistoryScreen: React.FC<Props> = ({navigation}) => {
 
             <VGap size={12}/>
             <VStack>
+                {/* Scrollable list of grouped reports */}
                 <ScrollView style={{flex: 1, width: "100%"}}>
                     {groupedReports.map((group, index) => (
                         <VStack key={index}>
